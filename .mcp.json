@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "literature": {
+      "command": "python3",
+      "args": [".claude/scripts/literature_mcp.py"],
+      "env": {}
+    }
+  }
+}

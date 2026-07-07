@@ -1,0 +1,213 @@
+# AI Research Orchestration System
+
+**English** | [한국어](README.ko.md)
+
+A production-grade multiagent orchestration system for AI/ML research, built on [Claude Code](https://code.claude.com).
+A frontier-model **orchestrator** (Claude Fable 5, with a validated Opus 4.8 backport) conducts a
+fleet of **Sonnet 5 specialist agents** through the full research lifecycle — hypothesis → adversarial
+review → data → code → verification → experiments → paper — with mechanically enforced quality
+gates, reproducibility discipline, cross-session memory, and Overleaf collaboration.
+
+Every load-bearing behavior in this system was validated by a measured evaluation battery
+(11/11 scenarios passed; see `.claude/prompts/orchestration-evals.md` and `.claude/ROADMAP.md`).
+
+## Why this exists
+
+Multiagent research systems fail in predictable ways: vague delegation, skipped quality gates,
+fabricated results, leaked test data, forgotten long-running jobs, and knowledge that dies with
+each session. This system engineers each failure mode away:
+
+| Failure mode | Countermeasure (all implemented and tested) |
+|---|---|
+| Vague delegation | BRIEF/RESULT/HANDOFF contracts on every dispatch (`.claude/prompts/result-contract.md`) |
+| Skipped gates under deadline pressure | Prompt-level gates + a `PreToolUse` hook that mechanically blocks experiment launches while a critical bug / blocking review / undocumented dataset exists |
+| Fabricated numbers or citations | Evidence-gated completion (✅/⚠️/❌ lines), "a result you did not receive does not exist", literature verification tooling |
+| Data leakage | Six agents share leakage responsibility; split-integrity checklist gates every dataset |
+| Lost long runs | Status-wrapper protocol (`status.json` heartbeat, orphan adoption at session start) |
+| Amnesia between sessions | Dual-layer continuity: human-readable markdown docs + machine-readable `handoff.json` + per-role agent memory, injected automatically at session start |
+
+## Architecture
+
+```
+User
+ │
+ ▼
+Conductor (main Claude session)            classifies requests, dispatches
+ │
+ ▼
+orchestrator (model: fable)                plans, routes, enforces gates, synthesizes
+ │   fallback: orchestrator-opus (model: opus, Fable-5-backport prompt)
+ │
+ ├─► brainstorm (sonnet)          hypotheses, literature      ─┐
+ ├─► critic (sonnet)              adversarial validity review  │  isolated contexts,
+ ├─► data (sonnet)                datasets, splits, EDA        │  briefed via BRIEF,
+ ├─► developer (sonnet)           model/eval code              │  replying via RESULT;
+ ├─► qa (sonnet)                  tests, bug isolation, gates  │  never call each other
+ ├─► experiment-tracker (sonnet)  runs, sweeps, result records │
+ ├─► filemanager (sonnet)         repo, git, env, archives     │
+ └─► writer (sonnet)              reports, README, LaTeX paper ─┘
+```
+
+The orchestrator prompts are reverse-engineered from Anthropic's own model-specific system prompts:
+the Opus 4.8 variant transplants the Fable-5-only behavioral layer (communication, autonomy,
+deliberate reflection) and adds an explicit Gate 0–8 process. Sonnet specialists carry a
+`specialist-core` skill that uplifts worker reasoning to frontier discipline at worker-tier cost.
+Details and provenance: `.claude/prompts/README.md`.
+
+## Requirements
+
+- [Claude Code](https://code.claude.com) CLI (agents, skills, hooks, and MCP are used heavily)
+- Python 3.8+ (all tooling is stdlib-only — no pip installs required)
+- git; internet access for literature APIs
+- Optional: an Overleaf account with git integration (premium) for paper collaboration
+- Optional: a [Semantic Scholar API key](https://www.semanticscholar.org/product/api) for higher literature-search rate limits
+
+## Quick start
+
+```bash
+git clone <this-repo> my-research && cd my-research
+
+# 1. Personal secrets (never committed — the file is gitignored)
+cp .claude/settings.local.json.example .claude/settings.local.json
+#    then edit it: your Overleaf git token, optional S2 API key, contact email
+
+# 2. Start Claude Code
+claude
+```
+
+On the first session the system introduces itself: a `SessionStart` hook injects a continuity
+brief (open gates, running experiments, last hand-off), and the literature MCP server loads.
+Then just describe your research goal in plain language:
+
+```
+"Design and run an experiment testing whether back-translation augmentation
+ improves minority-class F1 on my dataset."
+```
+
+The orchestrator takes over: bootstrap audit → hypothesis (brainstorm) → adversarial review
+(critic) → dataset card with leakage checklist (data) → implementation (developer) → verification
+(qa) → gated experiment run (experiment-tracker) → result review (critic) → report (writer).
+Trivial lookups ("What does HYP-003 say?") are answered directly without agent overhead.
+
+### User-specific values (fill in yourself; all are masked/gitignored)
+
+| Value | Where | Needed for |
+|---|---|---|
+| `OVERLEAF_GIT_TOKEN` | `.claude/settings.local.json` | Overleaf paper sync (Account Settings → Git Integration) |
+| `S2_API_KEY` | `.claude/settings.local.json` | optional — lifts Semantic Scholar rate limits |
+| `LIT_CONTACT_EMAIL` | `.claude/settings.local.json` | optional — joins OpenAlex's polite (faster) API pool |
+| Overleaf project IDs | passed per project at link time | see `.claude/OVERLEAF.md` |
+
+## What you can do
+
+**Research pipeline** — the default flow above, with three mandatory gates before any experiment:
+critic has reviewed the plan, qa has verified the code, data has documented the split. Gates are
+enforced twice: in the orchestrator's prompts *and* by `.claude/hooks/experiment_gate.py`, which
+blocks `run.sh` / `evaluate.sh` / `python models/*.py` while a gate is unmet. Legitimate bypass:
+record an ADR (rule skipped, reason, rollback plan), then prefix the command with
+`GATE_OVERRIDE=ADR-NNN` — the hook verifies the ADR actually exists.
+
+**Literature research** — structured search over arXiv, OpenAlex (journals + top-tier conferences,
+citation counts, open-access PDF links), PubMed, and Semantic Scholar, as both a CLI and an MCP
+server (`.mcp.json`):
+
+```bash
+python3 .claude/scripts/lit_search.py openalex "EEG emotion recognition" \
+    --venue "IEEE Transactions on Affective Computing" --year 2022-2026 --limit 5
+```
+
+Storage convention: original PDFs in `papers/`, durable per-paper reading notes in
+`papers/notes/`, current-version relevance summaries as RES entries in `discussion.md`.
+(ResearchGate is deliberately excluded — it has no public API; OpenAlex/S2 cover the need.)
+
+**Long-running experiments** — anything over ~2 minutes launches through
+`.claude/scripts/run_with_status.sh`, which maintains a `status.json` heartbeat and survives
+session death; the next session automatically detects and adopts orphaned runs. Sweeps and
+ablation grids run as ONE experiment with parallel sub-runs and a single fan-in comparison table
+(`.claude/scripts/sweep_summary.py`).
+
+**Paper writing on Overleaf** — link any Overleaf project once
+(`.claude/scripts/overleaf_sync.sh clone <project-id> docs/paper-<name>`), then the writer agent
+pulls, edits with per-number provenance comments (`% source: EXP-003`), and pushes; you watch and
+compile live on Overleaf. Push safety: secrets/data blocked, concurrent web edits integrated,
+token masked. Full guide: `.claude/OVERLEAF.md`.
+
+## Monitoring your project (two layers)
+
+**Human layer — read these markdown files:**
+
+| File | What you see |
+|---|---|
+| `discussion.md` | Hypotheses (HYP), literature notes (RES), dataset cards (DATASET), reviews (REV), decisions (ADR), plans, session state (STATE) |
+| `result.md` | Experiment records (EXP) with configs/metrics, narrative reports (REPORT) |
+| `error.md` | Bugs (BUG) and validity issues (VAL) with severity and status |
+| `version.md` | Version archive — each phase's condensed history (VER) |
+
+Each doc has summary tables at the top for at-a-glance status. At phase boundaries the working
+docs are archived into `version.md` and reset (version-gated document system).
+
+**Agent layer — machine-readable, you rarely touch it:**
+`.claude/state/handoff.json` (structured session hand-off, auto-checked by a Stop hook before any
+session ends with unrecorded changes) and `.claude/agent-memory/<role>/` (cross-session lessons
+per role). A SessionStart hook injects both into every new session.
+
+## Repository structure
+
+```
+├── CLAUDE.md                  # system constitution — routing, gates, doc formats (edit per domain)
+├── README.md / README.ko.md   # this file (English / Korean)
+├── LICENSE                    # MIT
+├── discussion.md / result.md / error.md / version.md   # the four research docs
+├── .claude/
+│   ├── agents/                # 10 agent specs (2 orchestrator variants + 8 specialists)
+│   ├── skills/                # 8 skills (6 research disciplines + orchestration + specialist-core)
+│   ├── prompts/               # orchestrator prompt cores, delegation contracts, eval scenarios
+│   ├── hooks/                 # experiment gate, session brief, session close gate
+│   ├── scripts/               # lit_search, literature_mcp, overleaf_sync, run_with_status, sweep_summary
+│   ├── agent-memory/          # persistent per-role memory
+│   ├── state/                 # handoff.json (session continuity)
+│   ├── OVERLEAF.md            # per-project Overleaf linking guide
+│   ├── ROADMAP.md             # eval evidence + phased improvement plan
+│   ├── settings.json          # hooks + permission allowlist (committed)
+│   └── settings.local.json    # YOUR tokens (gitignored; copy from .example)
+├── .mcp.json                  # literature MCP server registration
+├── papers/                    # reference PDFs + notes/ (durable reading notes)
+├── data/ · experiments/       # datasets and run artifacts (gitignored)
+├── models/ · evaluation/ · analysis/ · tests/ · docs/
+└── run.sh · evaluate.sh · setup.sh · requirement.txt
+```
+
+## Validating the system
+
+The orchestrators ship with a 14-scenario evaluation battery
+(`.claude/prompts/orchestration-evals.md`): fabrication baits, gate-pressure traps, conflicting
+specialist results, fleet-sizing traps, prompt-injection traps, and more, each scored on a
+5-criterion rubric. Re-run it after changing any prompt core — the recorded baseline is 11/11.
+Roadmap, eval evidence, and known limitations: `.claude/ROADMAP.md`.
+
+## Customization
+
+1. **`CLAUDE.md`** — add domain rules (privacy, licensing, evaluation criteria).
+2. **Agent specs** (`.claude/agents/`) — add domain-specific checklists; keep the RESULT contract
+   and version-management blocks intact.
+3. **Prompt cores** (`.claude/prompts/`) — policy changes go into BOTH orchestrator cores (terse
+   Fable form + gated Opus form) and require re-running the eval battery.
+4. **Pipelines** — implement `setup.sh`, `run.sh`, `evaluate.sh`, `models/`, `evaluation/` for
+   your domain; training loops >30 min must checkpoint and accept `--resume-from`.
+
+## Security and distribution notes
+
+- Real tokens live only in `.claude/settings.local.json` (gitignored). The committed
+  `.example` file contains placeholders.
+- `data/`, `experiments/`, and `docs/paper*/` (Overleaf clones with embedded tokens) are
+  gitignored; the filemanager agent audits every commit for staged data/secrets.
+- The experiment gate hook is conservative by design: a command merely *quoting* `run.sh` can be
+  blocked while gates are unmet. That is a feature.
+
+## License
+
+[MIT](LICENSE) — permissive and simple, the standard choice for research templates. (If you need
+an explicit patent grant for corporate contributors, Apache-2.0 is the alternative.)
+
+Note: the third-party system-prompt collections used as design sources are **not** part of this
+repository (gitignored); `.claude/prompts/README.md` documents the provenance.

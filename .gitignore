@@ -1,0 +1,48 @@
+# All data (raw, processed, splits)
+data/
+
+# Model outputs and experiment artifacts
+experiments/
+
+# Environment
+*.pyc
+__pycache__/
+.env
+*.egg-info/
+dist/
+build/
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Model checkpoints and weights
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.safetensors
+
+# Logs
+*.log
+wandb/
+runs/
+
+# personal settings (contains Overleaf token) and Overleaf clones (nested git repos)
+.claude/settings.local.json
+docs/paper*/
+
+# Third-party reference material — not redistributed (system-prompt collections used as design
+# sources; provenance documented in .claude/prompts/README.md)
+ai-systemprompts-reference/
+system_prompts_reference/
+reference_source/
+
+# Third-party paper PDFs (copyright) — your own reading notes in papers/notes/ ARE tracked
+papers/*.pdf

@@ -1,0 +1,8 @@
+{
+  "_comment": "Copy this file to .claude/settings.local.json and fill in your own values. settings.local.json is gitignored — never commit real tokens.",
+  "env": {
+    "OVERLEAF_GIT_TOKEN": "olp_YOUR_OVERLEAF_GIT_TOKEN_HERE",
+    "S2_API_KEY": "",
+    "LIT_CONTACT_EMAIL": "you@example.com"
+  }
+}

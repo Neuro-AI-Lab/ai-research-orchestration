@@ -137,6 +137,40 @@ Earlier probes: orchestrator-opus honesty lookup (5/5, 4 calls, 24s); qa special
   pre-clearance line before user delivery (S12's remediation loop showed the pattern works;
   make it the default path).
 
+### P2-g: Sonnet 5 worker backport document + adversarial self-review — **done 2026-07-07**
+
+`.claude/prompts/specialist-core-sonnet5.md` created — the Opus 4.8 → Sonnet 5 backport,
+completing symmetry with the orchestrator backport. Evidence: systematic diff of
+`claude-opus-4.8.md` vs `claude-sonnet-5.md` (bulk identical; five Opus-only transplant
+candidates: anti-deferral, formatting discipline, concision frame, no-hidden-rule-appeals,
+capability discovery; Sonnet natively keeps the thinking/proactivity blocks Opus dropped).
+All five grafted into the `specialist-core` skill. **Critic adversarial review returned
+"revise"** with 2 major findings (an unsupported token-count claim; probe numbers cited without a
+logged source — the exact hallucination pattern the lab forbids) and 4 minors — all fixed same
+day, including broadening the formatting carve-out to template-mandated lists and syncing the
+harness-reminder trust-boundary carve-out into both orchestrator cores.
+
+### Worker probe telemetry (source: Agent tool usage metadata, this file is the log of record)
+
+Probe brief: identical qa read-only "four gates runnable?" dry-run audit.
+
+| Run | Date | Skill version | Tool calls | Tokens | Wall | Notes |
+|---|---|---|---|---|---|---|
+| W1 | 2026-07-07 | specialist-core v1 | 5 | 27.1k | 56s | pre-hook baseline; full RESULT contract |
+| W2 | 2026-07-07 | v2 (five transplants) | 17 | 35.9k | 109s | **confounded**: experiment-gate hook false-positive blocked a read-only `cat` mid-run (hook regex since fixed, 13/13 tests); evidence quality richer than W1 (byte-level checks, exit-code distinctions) |
+
+Clean re-measure (W3) queued for the next session with the fixed hook; the >1.5x-regression rule
+applies against W1 once a clean run exists. Review-cost note: the critic's adversarial review of
+the backport cost 35 tool calls / 103.9k tokens / 428s — thorough review is expensive and worth it
+(it caught 2 real major defects).
+
+### Gate hook regex v2 — **done 2026-07-07**
+
+`experiment_gate.py` now matches `run.sh`/`evaluate.sh` only in command position: read-only
+mentions (`cat run.sh`, `wc -l`, `bash -n`, `grep`, `echo`) pass through; launches (`bash run.sh`,
+`./evaluate.sh`, bare at segment start, `nohup`/`setsid`) still block. 13/13 unit tests
+(6 true-positive, 2 override, 5 false-positive).
+
 ## Standing decision rules
 
 - Prompt-core changes require: eval evidence (or an ADR explaining why not), both cores updated in

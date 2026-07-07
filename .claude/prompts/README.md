@@ -46,13 +46,13 @@ development machine; the derived policy is fully contained in the files here):
 | `orchestrator-core-fable5.md` | Orchestration core for the Fable 5 orchestrator. Terse, high-trust judgment statements — the Fable 5 prompting style. |
 | `orchestrator-core-opus48.md` | The Fable 5 **backport** for Opus 4.8: Part I transplants the Fable-only behavioral layer (communication, autonomy, deliberate reflection) near-verbatim; Part II adds the lab's explicit gate sequence (Gate 0–8) as reliability scaffolding. |
 | `result-contract.md` | The BRIEF / RESULT / HANDOFF schemas — the only channel between orchestrator and specialists. Authoritative for those schemas. |
+| `specialist-core-sonnet5.md` | The Opus 4.8 → **Sonnet 5 backport** for workers: five small Opus-only transplants grafted onto Sonnet's untouched native spine (which already carries the thinking/proactivity blocks Opus dropped). Canonical source for the `specialist-core` skill. |
 | `orchestration-evals.md` | 14 eval scenarios + judging rubric for comparing the two orchestrator variants. |
 
-The third reverse-engineered prompt lives as a skill so it preloads into every worker:
-`.claude/skills/specialist-core/SKILL.md` — the **Sonnet 5 uplift core** (deliberate thinking from
-Sonnet 5's own prompt, the Fable-5-only autonomy/verification blocks adapted to the worker role,
-Opus 4.7's reflection-between-tool-results, condensed RESULT output). The conductor protocol for a
-main session running on Opus 4.8 is in CLAUDE.md ("Conductor protocol").
+The worker backport preloads into every specialist as the `specialist-core` skill
+(`.claude/skills/specialist-core/SKILL.md` — the operational digest of
+`specialist-core-sonnet5.md`; edit them together). The conductor protocol for a main session
+running on Opus 4.8 is in CLAUDE.md ("Conductor protocol").
 
 ## The backport principle (v2, corrected)
 

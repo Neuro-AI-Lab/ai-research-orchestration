@@ -18,8 +18,11 @@ import os
 import re
 import sys
 
+# Match run.sh / evaluate.sh only in a COMMAND position (segment start, or after an executor
+# like bash/sh/setsid/nohup), so read-only mentions — `cat run.sh`, `grep foo evaluate.sh`,
+# `bash -n run.sh` (syntax check has the -n flag between bash and the file) — pass through.
 EXP_LAUNCH = re.compile(
-    r'(^|[\s;&|(])(bash\s+|sh\s+|\./)?(run|evaluate)\.sh\b'
+    r'(^|[;&|(]\s*|\b(?:bash|sh|setsid|nohup|exec)\s+)(\./)?(run|evaluate)\.sh\b'
     r'|python[0-9.]*\s+\S*models/\S+\.py'
 )
 

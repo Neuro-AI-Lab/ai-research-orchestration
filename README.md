@@ -66,18 +66,17 @@ Details and provenance: `.claude/prompts/README.md`.
 
 ```bash
 git clone <this-repo> my-research && cd my-research
-
-# 1. Personal secrets (never committed — the file is gitignored)
-cp .claude/settings.local.json.example .claude/settings.local.json
-#    then edit it: your Overleaf git token, optional S2 API key, contact email
-
-# 2. Start Claude Code
-claude
+cp .claude/settings.local.json.example .claude/settings.local.json   # fill in what you want (all optional)
+claude                                                               # start Claude Code
 ```
 
+The **core research pipeline needs no credentials** — it works out of the box. Secrets only unlock
+optional integrations (Zotero, Overleaf, higher literature rate limits); add them incrementally.
+**Full walkthrough and the masked-credentials guide: [SETUP.md](SETUP.md).**
+
 On the first session the system introduces itself: a `SessionStart` hook injects a continuity
-brief (open gates, running experiments, last hand-off), and the literature MCP server loads.
-Then just describe your research goal in plain language:
+brief (open gates, running experiments, last hand-off), and the literature + Zotero MCP servers
+load. Then just describe your research goal in plain language:
 
 ```
 "Design and run an experiment testing whether back-translation augmentation
@@ -89,15 +88,17 @@ The orchestrator takes over: bootstrap audit → hypothesis (brainstorm) → adv
 (qa) → gated experiment run (experiment-tracker) → result review (critic) → report (writer).
 Trivial lookups ("What does HYP-003 say?") are answered directly without agent overhead.
 
-### User-specific values (fill in yourself; all are masked/gitignored)
+### User-specific values (fill in yourself; all optional, all masked/gitignored)
 
-| Value | Where | Needed for |
+Full instructions in [SETUP.md](SETUP.md). Summary:
+
+| Value | Unlocks | Where to get it |
 |---|---|---|
-| `OVERLEAF_GIT_TOKEN` | `.claude/settings.local.json` | Overleaf paper sync (Account Settings → Git Integration) |
-| `S2_API_KEY` | `.claude/settings.local.json` | optional — lifts Semantic Scholar rate limits |
-| `LIT_CONTACT_EMAIL` | `.claude/settings.local.json` | optional — joins OpenAlex's polite (faster) API pool |
-| `ZOTERO_API_KEY` + `ZOTERO_USER_ID` | `.claude/settings.local.json` | Zotero library integration (zotero.org/settings/keys); see `.claude/ZOTERO.md` |
-| Overleaf project IDs | passed per project at link time | see `.claude/OVERLEAF.md` |
+| `ZOTERO_API_KEY` + `ZOTERO_USER_ID` (or `ZOTERO_GROUP_ID`) | Zotero library search, PDF reading, save-back, BibTeX | [zotero.org/settings/keys](https://www.zotero.org/settings/keys) — see `.claude/ZOTERO.md` |
+| `OVERLEAF_GIT_TOKEN` | Overleaf paper sync | Overleaf → Account Settings → Git Integration — see `.claude/OVERLEAF.md` |
+| `S2_API_KEY` | higher Semantic Scholar rate limits | [semanticscholar.org/product/api](https://www.semanticscholar.org/product/api) |
+| `LIT_CONTACT_EMAIL` | faster OpenAlex "polite pool" | your email (no signup) |
+| `GITHUB_TOKEN` | agents push the repo / open PRs | GitHub → Developer settings → fine-grained PAT |
 
 ## What you can do
 
@@ -160,6 +161,7 @@ per role). A SessionStart hook injects both into every new session.
 ```
 ├── CLAUDE.md                  # system constitution — routing, gates, doc formats (edit per domain)
 ├── README.md / README.ko.md   # this file (English / Korean)
+├── SETUP.md                   # first-time setup + masked-credentials guide + usage scenarios
 ├── LICENSE                    # MIT
 ├── discussion.md / result.md / error.md / version.md   # the four research docs
 ├── .claude/

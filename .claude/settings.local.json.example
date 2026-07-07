@@ -1,12 +1,22 @@
 {
-  "_comment": "Copy this file to .claude/settings.local.json and fill in your own values. settings.local.json is gitignored — never commit real tokens.",
+  "_comment": "SETUP: copy this file to .claude/settings.local.json and fill in your own values. That file is gitignored — never commit real tokens. Full guide: SETUP.md. Everything here is OPTIONAL; the core research pipeline runs with none of it. Add a key only when you want the feature it unlocks. Leave a value as an empty string to disable it.",
+
   "env": {
-    "OVERLEAF_GIT_TOKEN": "olp_YOUR_OVERLEAF_GIT_TOKEN_HERE",
-    "GITHUB_TOKEN": "",
+    "_lit_contact_email": "OPTIONAL. Your email — joins OpenAlex's faster 'polite' API pool for literature search. No signup.",
+    "LIT_CONTACT_EMAIL": "",
+
+    "_s2_api_key": "OPTIONAL. Semantic Scholar API key (https://www.semanticscholar.org/product/api). Lifts literature-search rate limits. Works without it via the shared pool.",
     "S2_API_KEY": "",
-    "LIT_CONTACT_EMAIL": "you@example.com",
-    "ZOTERO_API_KEY": "YOUR_ZOTERO_API_KEY (zotero.org/settings/keys)",
-    "ZOTERO_USER_ID": "YOUR_NUMERIC_USER_ID (shown on the same page)",
-    "ZOTERO_GROUP_ID": ""
+
+    "_zotero": "OPTIONAL (recommended). Connect your Zotero library. Get both at https://www.zotero.org/settings/keys — enable write access for save-back. For a GROUP library set ZOTERO_GROUP_ID (takes precedence over USER_ID). Guide: .claude/ZOTERO.md",
+    "ZOTERO_API_KEY": "",
+    "ZOTERO_USER_ID": "",
+    "ZOTERO_GROUP_ID": "",
+
+    "_overleaf": "OPTIONAL. Overleaf git token for paper collaboration (Account Settings -> Git Integration; premium feature). Guide: .claude/OVERLEAF.md",
+    "OVERLEAF_GIT_TOKEN": "",
+
+    "_github_token": "OPTIONAL. Only if you want agents to push this repo / open PRs on your behalf. A fine-grained PAT scoped to the single repo (Contents: read/write) is safest.",
+    "GITHUB_TOKEN": ""
   }
 }

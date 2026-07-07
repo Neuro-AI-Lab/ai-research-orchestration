@@ -65,17 +65,16 @@ orchestrator (model: fable)                계획, 라우팅, 게이트 강제, 
 
 ```bash
 git clone <this-repo> my-research && cd my-research
-
-# 1. 개인 시크릿 설정 (절대 커밋되지 않음 — gitignore 처리됨)
-cp .claude/settings.local.json.example .claude/settings.local.json
-#    편집: Overleaf git 토큰, 선택적 S2 API 키, 연락 이메일
-
-# 2. Claude Code 시작
-claude
+cp .claude/settings.local.json.example .claude/settings.local.json   # 원하는 값만 채우기 (전부 선택)
+claude                                                               # Claude Code 시작
 ```
 
+**핵심 연구 파이프라인은 자격증명 없이 동작합니다.** 비밀 값은 선택적 통합(Zotero, Overleaf,
+문헌 API 상향)을 켤 때만 하나씩 추가하면 됩니다. **전체 설정·마스크된 자격증명 가이드:
+[SETUP.md](SETUP.md).**
+
 첫 세션에서 시스템이 스스로 상황을 알려줍니다: `SessionStart` 훅이 연속성 브리핑(열린 게이트,
-실행 중인 실험, 마지막 인수인계)을 주입하고 문헌 MCP 서버가 로드됩니다. 이후 연구 목표를
+실행 중인 실험, 마지막 인수인계)을 주입하고 문헌·Zotero MCP 서버가 로드됩니다. 이후 연구 목표를
 평범한 언어로 말하면 됩니다:
 
 ```
@@ -88,15 +87,17 @@ claude
 실행(experiment-tracker) → 결과 리뷰(critic) → 리포트(writer). 사소한 조회("HYP-003 내용이
 뭐야?")는 에이전트 없이 즉답합니다.
 
-### 사용자별 입력 값 (직접 기입; 전부 마스킹/gitignore 처리)
+### 사용자별 입력 값 (직접 기입; 전부 선택, 전부 마스킹/gitignore)
 
-| 값 | 위치 | 용도 |
+전체 안내는 [SETUP.md](SETUP.md). 요약:
+
+| 값 | 켜지는 기능 | 발급처 |
 |---|---|---|
-| `OVERLEAF_GIT_TOKEN` | `.claude/settings.local.json` | Overleaf 논문 동기화 (Account Settings → Git Integration) |
-| `S2_API_KEY` | `.claude/settings.local.json` | 선택 — Semantic Scholar 쿼터 상향 |
-| `LIT_CONTACT_EMAIL` | `.claude/settings.local.json` | 선택 — OpenAlex polite pool(더 빠른 API) 가입 |
-| `ZOTERO_API_KEY` + `ZOTERO_USER_ID` | `.claude/settings.local.json` | Zotero 라이브러리 연동 (zotero.org/settings/keys); `.claude/ZOTERO.md` 참고 |
-| Overleaf 프로젝트 ID | 프로젝트 연동 시마다 입력 | `.claude/OVERLEAF.md` 참고 |
+| `ZOTERO_API_KEY` + `ZOTERO_USER_ID` (또는 `ZOTERO_GROUP_ID`) | Zotero 검색·PDF 정독·save-back·BibTeX | [zotero.org/settings/keys](https://www.zotero.org/settings/keys) — `.claude/ZOTERO.md` |
+| `OVERLEAF_GIT_TOKEN` | Overleaf 논문 동기화 | Overleaf → Account Settings → Git Integration — `.claude/OVERLEAF.md` |
+| `S2_API_KEY` | Semantic Scholar 쿼터 상향 | [semanticscholar.org/product/api](https://www.semanticscholar.org/product/api) |
+| `LIT_CONTACT_EMAIL` | OpenAlex polite pool(더 빠름) | 본인 이메일 (가입 불필요) |
+| `GITHUB_TOKEN` | 에이전트가 레포 push / PR | GitHub → Developer settings → fine-grained PAT |
 
 ## 무엇을 할 수 있나
 
@@ -156,7 +157,8 @@ pull → 수치마다 출처 주석(`% source: EXP-003`)을 달아 편집 → pu
 ```
 ├── CLAUDE.md                  # 시스템 헌법 — 라우팅, 게이트, 문서 포맷 (도메인에 맞게 수정)
 ├── README.md / README.ko.md   # 이 파일 (영어 / 한국어)
-├── LICENSE                    # MIT — 배포 전 이름 기입
+├── SETUP.md                   # 최초 설정 + 마스크된 자격증명 가이드 + 사용 시나리오
+├── LICENSE                    # MIT
 ├── discussion.md / result.md / error.md / version.md   # 4대 연구 문서
 ├── .claude/
 │   ├── agents/                # 에이전트 스펙 10개 (orchestrator 2변형 + 전문가 8)

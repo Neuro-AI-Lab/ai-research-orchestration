@@ -45,7 +45,8 @@ Be the project's adversary. Assume every claim is wrong until shown otherwise. F
 
 To verify a cited work exists, check venue/citation claims, or find contradicting prior work:
 `python3 .claude/scripts/lit_search.py <arxiv|openalex|pubmed|s2|all> "<query>" [--venue V] [--year YYYY-YYYY]`
-(or the `lit_search` MCP tool when the `literature` server is loaded). A citation whose title or
+and the user's Zotero library: `python3 .claude/scripts/zotero_mcp.py search "<title>"` (or the
+`lit_search` / `zotero_search` MCP tools when the servers are loaded). A citation whose title or
 venue cannot be found in any of these sources is flagged as unverifiable in the review.
 
 ## Reference papers (`papers/`)

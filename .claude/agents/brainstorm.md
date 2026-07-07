@@ -49,8 +49,23 @@ python3 .claude/scripts/lit_search.py <arxiv|openalex|pubmed|s2|all> "<query>" \
     [--limit N] [--venue "NeurIPS"] [--year 2020-2026] [--json]
 ```
 
-When the `literature` MCP server is loaded (project `.mcp.json`), the same capability is available
-as the `lit_search` / `lit_fetch` MCP tools — prefer them over raw web search for papers. Rules:
+The user's Zotero library is connected (Web API):
+
+```bash
+python3 .claude/scripts/zotero_mcp.py search "<query>" [--limit N] [--tag TAG]
+python3 .claude/scripts/zotero_mcp.py item <KEY>          # metadata + PDF attachment keys
+python3 .claude/scripts/zotero_mcp.py fulltext <ATT-KEY>  # read the indexed paper text
+python3 .claude/scripts/zotero_mcp.py add --title T --doi D --venue V --date YYYY --tag <HYP-ID>
+```
+
+**Library-first rule:** search Zotero BEFORE the open web — the user's curated library defines
+what the lab already knows. **Save-back rule:** when a lit_search discovery becomes load-bearing
+(cited in a HYP/RES), `zotero_add` it with the relevant HYP id as a tag, so the library stays the
+canonical bibliographic store.
+
+When the `literature` / `zotero` MCP servers are loaded (project `.mcp.json`), the same
+capabilities are available as MCP tools (`lit_search`, `zotero_search`, …) — prefer them over raw
+web search for papers. Rules:
 - Search results are leads, not evidence. Fetch and read the paper (OA PDF into `papers/`) before
   citing it in a HYP or RES entry — the anti-hallucination rules below apply unchanged.
 - Prefer OpenAlex/S2 venue + citation metadata to judge whether a work is top-tier; ResearchGate
@@ -67,7 +82,8 @@ When new papers are added to `papers/`, read them in full and produce a RES entr
 
 | Layer | Location | Durability |
 |:--|:--|:--|
-| Originals | `papers/<firstauthor-year-keyword>.pdf` (download OA PDFs: `curl -L -o papers/<key>.pdf "<oa_pdf url from lit_search>"`) | permanent |
+| Bibliographic record | the user's **Zotero library** (`zotero_add` on discovery; tag with HYP ids) | permanent, canonical |
+| Originals | `papers/<firstauthor-year-keyword>.pdf` (download OA PDFs: `curl -L -o papers/<key>.pdf "<oa_pdf url from lit_search>"`; Zotero-stored PDFs readable via `zotero_mcp.py fulltext`) | permanent |
 | Reading notes | `papers/notes/<same-key>.md` — detailed per-paper notes: method, numbers with page refs, limitations, relevance to our HYPs, verbatim quotes ≤15 words | permanent (survives version transitions) |
 | Relevance summary | `RES-NNN` entry in `discussion.md`, linking both files | current version only (archived at version bumps) |
 

@@ -95,6 +95,7 @@ claude
 | `OVERLEAF_GIT_TOKEN` | `.claude/settings.local.json` | Overleaf 논문 동기화 (Account Settings → Git Integration) |
 | `S2_API_KEY` | `.claude/settings.local.json` | 선택 — Semantic Scholar 쿼터 상향 |
 | `LIT_CONTACT_EMAIL` | `.claude/settings.local.json` | 선택 — OpenAlex polite pool(더 빠른 API) 가입 |
+| `ZOTERO_API_KEY` + `ZOTERO_USER_ID` | `.claude/settings.local.json` | Zotero 라이브러리 연동 (zotero.org/settings/keys); `.claude/ZOTERO.md` 참고 |
 | Overleaf 프로젝트 ID | 프로젝트 연동 시마다 입력 | `.claude/OVERLEAF.md` 참고 |
 
 ## 무엇을 할 수 있나
@@ -113,9 +114,12 @@ python3 .claude/scripts/lit_search.py openalex "EEG emotion recognition" \
     --venue "IEEE Transactions on Affective Computing" --year 2022-2026 --limit 5
 ```
 
-저장 규약: 원문 PDF는 `papers/`, 버전 전환에도 살아남는 정독 노트는 `papers/notes/`, 현재
-버전의 관련성 요약은 `discussion.md`의 RES 엔트리. (ResearchGate는 공개 API가 없어 의도적으로
-제외 — OpenAlex/S2가 대체합니다.)
+**Zotero 라이브러리**가 일급 시민입니다(`.claude/ZOTERO.md`): 에이전트가 오픈 웹보다 먼저
+사용자의 라이브러리를 검색하고, 저장된 PDF를 읽고, 중요해진 발견 논문을 가설 태그와 함께
+라이브러리에 저장(write-back)하며, Overleaf 논문의 `.bib`에 BibTeX를 추출합니다. 저장 규약:
+Zotero = 정본 서지 저장소, 원문 PDF는 `papers/`, 버전 전환에도 살아남는 정독 노트는
+`papers/notes/`, 현재 버전의 관련성 요약은 `discussion.md`의 RES 엔트리. (ResearchGate는 공개
+API가 없어 의도적으로 제외 — OpenAlex/S2가 대체합니다.)
 
 **장시간 실험** — 약 2분을 넘는 작업은 `.claude/scripts/run_with_status.sh`로 실행되어
 `status.json` 하트비트를 유지하고 세션이 죽어도 생존합니다; 다음 세션이 고아 런을 자동 감지해
@@ -159,14 +163,15 @@ pull → 수치마다 출처 주석(`% source: EXP-003`)을 달아 편집 → pu
 │   ├── skills/                # 스킬 8개 (연구 규율 6 + orchestration + specialist-core)
 │   ├── prompts/               # 오케스트레이터 프롬프트 코어, 위임 계약, 평가 시나리오
 │   ├── hooks/                 # 실험 게이트, 세션 브리핑, 세션 종료 게이트
-│   ├── scripts/               # lit_search, literature_mcp, overleaf_sync, run_with_status, sweep_summary
+│   ├── scripts/               # lit_search, literature_mcp, zotero_mcp, overleaf_sync, run_with_status, sweep_summary
 │   ├── agent-memory/          # 역할별 영속 메모리
 │   ├── state/                 # handoff.json (세션 연속성)
 │   ├── OVERLEAF.md            # 프로젝트별 Overleaf 연동 가이드
+│   ├── ZOTERO.md              # Zotero 라이브러리 연동 가이드
 │   ├── ROADMAP.md             # 평가 증거 + 단계별 고도화 계획
 │   ├── settings.json          # 훅 + 권한 allowlist (커밋됨)
 │   └── settings.local.json    # 개인 토큰 (gitignore; .example에서 복사)
-├── .mcp.json                  # 문헌 MCP 서버 등록
+├── .mcp.json                  # MCP 서버: literature (arXiv/OpenAlex/PubMed/S2) + zotero
 ├── papers/                    # 참고 PDF + notes/ (영속 정독 노트)
 ├── data/ · experiments/       # 데이터셋·실행 산출물 (gitignore)
 ├── models/ · evaluation/ · analysis/ · tests/ · docs/

@@ -233,7 +233,8 @@ project/
 ├── .claude/agent-memory/     # persistent cross-session memory (orchestrator, brainstorm, critic)
 ├── .claude/state/            # handoff.json — structured session hand-off (agent layer)
 ├── .claude/OVERLEAF.md       # per-project Overleaf linking guide (token: settings.local.json)
-├── .mcp.json                 # literature MCP server (arXiv/OpenAlex/PubMed/S2)
+├── .claude/ZOTERO.md         # Zotero library integration guide (key: settings.local.json)
+├── .mcp.json                 # MCP servers: literature (arXiv/OpenAlex/PubMed/S2) + zotero
 ├── papers/                   # brainstorm + critic (reference PDFs; notes/ = per-paper reading notes, cross-version durable)
 ├── data/                     # data: raw, processed, splits (gitignored)
 ├── models/                   # developer (model code + training scripts)

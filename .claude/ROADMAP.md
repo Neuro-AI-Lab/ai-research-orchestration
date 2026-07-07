@@ -164,6 +164,19 @@ applies against W1 once a clean run exists. Review-cost note: the critic's adver
 the backport cost 35 tool calls / 103.9k tokens / 428s — thorough review is expensive and worth it
 (it caught 2 real major defects).
 
+### P2-h: Zotero library integration — **done 2026-07-07**
+
+`.claude/scripts/zotero_mcp.py` — CLI + MCP server in one stdlib-only file (Zotero Web API v3,
+`ZOTERO_LOCAL=1` desktop fallback). Six tools: search / item / fulltext / bibtex / collections /
+add. Wired: brainstorm (library-first search + save-back with HYP tags; Zotero = canonical
+bibliographic store in the storage convention), critic (citation existence cross-check), writer
+(BibTeX export into the Overleaf `.bib` — never hand-written). Registered as the second MCP server
+in `.mcp.json`; setup guide `.claude/ZOTERO.md`. *Evidence:* live tests against Zotero's public
+example library (users/475425): search returned real items with keys/DOIs, collections listed,
+BibTeX exported a valid @article; MCP handshake + tools/call verified; unconfigured-state error
+message points to the guide. *User setup pending:* `ZOTERO_API_KEY` + `ZOTERO_USER_ID` in
+settings.local.json (write access recommended for save-back).
+
 ### Gate hook regex v2 — **done 2026-07-07**
 
 `experiment_gate.py` now matches `run.sh`/`evaluate.sh` only in command position: read-only

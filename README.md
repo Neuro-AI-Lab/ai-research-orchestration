@@ -96,6 +96,7 @@ Trivial lookups ("What does HYP-003 say?") are answered directly without agent o
 | `OVERLEAF_GIT_TOKEN` | `.claude/settings.local.json` | Overleaf paper sync (Account Settings → Git Integration) |
 | `S2_API_KEY` | `.claude/settings.local.json` | optional — lifts Semantic Scholar rate limits |
 | `LIT_CONTACT_EMAIL` | `.claude/settings.local.json` | optional — joins OpenAlex's polite (faster) API pool |
+| `ZOTERO_API_KEY` + `ZOTERO_USER_ID` | `.claude/settings.local.json` | Zotero library integration (zotero.org/settings/keys); see `.claude/ZOTERO.md` |
 | Overleaf project IDs | passed per project at link time | see `.claude/OVERLEAF.md` |
 
 ## What you can do
@@ -116,8 +117,11 @@ python3 .claude/scripts/lit_search.py openalex "EEG emotion recognition" \
     --venue "IEEE Transactions on Affective Computing" --year 2022-2026 --limit 5
 ```
 
-Storage convention: original PDFs in `papers/`, durable per-paper reading notes in
-`papers/notes/`, current-version relevance summaries as RES entries in `discussion.md`.
+Your **Zotero library** is a first-class citizen (`.claude/ZOTERO.md`): agents search it before
+the open web, read its stored PDFs, save load-bearing discoveries back into it (tagged by
+hypothesis), and export BibTeX from it into the Overleaf paper's `.bib`. Storage convention:
+Zotero = canonical bibliographic store, original PDFs in `papers/`, durable per-paper reading
+notes in `papers/notes/`, current-version relevance summaries as RES entries in `discussion.md`.
 (ResearchGate is deliberately excluded — it has no public API; OpenAlex/S2 cover the need.)
 
 **Long-running experiments** — anything over ~2 minutes launches through
@@ -163,14 +167,15 @@ per role). A SessionStart hook injects both into every new session.
 │   ├── skills/                # 8 skills (6 research disciplines + orchestration + specialist-core)
 │   ├── prompts/               # orchestrator prompt cores, delegation contracts, eval scenarios
 │   ├── hooks/                 # experiment gate, session brief, session close gate
-│   ├── scripts/               # lit_search, literature_mcp, overleaf_sync, run_with_status, sweep_summary
+│   ├── scripts/               # lit_search, literature_mcp, zotero_mcp, overleaf_sync, run_with_status, sweep_summary
 │   ├── agent-memory/          # persistent per-role memory
 │   ├── state/                 # handoff.json (session continuity)
 │   ├── OVERLEAF.md            # per-project Overleaf linking guide
+│   ├── ZOTERO.md              # Zotero library integration guide
 │   ├── ROADMAP.md             # eval evidence + phased improvement plan
 │   ├── settings.json          # hooks + permission allowlist (committed)
 │   └── settings.local.json    # YOUR tokens (gitignored; copy from .example)
-├── .mcp.json                  # literature MCP server registration
+├── .mcp.json                  # MCP servers: literature (arXiv/OpenAlex/PubMed/S2) + zotero
 ├── papers/                    # reference PDFs + notes/ (durable reading notes)
 ├── data/ · experiments/       # datasets and run artifacts (gitignored)
 ├── models/ · evaluation/ · analysis/ · tests/ · docs/

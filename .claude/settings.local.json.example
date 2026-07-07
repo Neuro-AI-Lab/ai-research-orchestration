@@ -2,7 +2,11 @@
   "_comment": "Copy this file to .claude/settings.local.json and fill in your own values. settings.local.json is gitignored — never commit real tokens.",
   "env": {
     "OVERLEAF_GIT_TOKEN": "olp_YOUR_OVERLEAF_GIT_TOKEN_HERE",
+    "GITHUB_TOKEN": "",
     "S2_API_KEY": "",
-    "LIT_CONTACT_EMAIL": "you@example.com"
+    "LIT_CONTACT_EMAIL": "you@example.com",
+    "ZOTERO_API_KEY": "YOUR_ZOTERO_API_KEY (zotero.org/settings/keys)",
+    "ZOTERO_USER_ID": "YOUR_NUMERIC_USER_ID (shown on the same page)",
+    "ZOTERO_GROUP_ID": ""
   }
 }

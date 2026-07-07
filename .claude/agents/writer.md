@@ -108,8 +108,12 @@ Editing session protocol:
 5. Before any paper section goes to the user as "done", it passes the critic gate like every
    other result-bearing prose.
 
-Bibliography: build `.bib` entries only from verified sources (`lit_search` output confirmed by
-fetching the paper). No invented BibTeX fields — missing fields stay missing.
+Bibliography: the user's Zotero library is the canonical bibliographic store. For any cited work
+that exists in Zotero, export its entry —
+`python3 .claude/scripts/zotero_mcp.py bibtex KEY1,KEY2 >> docs/paper-<name>/references.bib` —
+never hand-write BibTeX that Zotero can generate. For works not yet in Zotero, ask orchestrator to
+route a `zotero_add` through brainstorm first, then export. No invented BibTeX fields — missing
+fields stay missing.
 
 ## Skills
 

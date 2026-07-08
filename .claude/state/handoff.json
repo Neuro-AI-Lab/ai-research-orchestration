@@ -1,14 +1,16 @@
 {
   "updated_at": "2026-07-07",
-  "summary": "Agent system fully built and validated (P0+P1 complete; literature MCP, Overleaf sync, session-continuity hooks added). No research content started yet — root docs are template stubs.",
+  "summary": "System built + validated. Head-to-head eval expanded to 8/14 pairs, Opus 4.8 matched Fable 5 5/5 on all (16/16 runs). Root docs restored to clean template state; no research started yet.",
   "open_items": [],
   "next_actions": [
     "On first research request: run the bootstrap procedure (CLAUDE.md) before any experiment",
-    "P0-c/d from .claude/ROADMAP.md: harden eval fixtures, run remaining 6 eval scenarios"
+    "P0-c/d remainder: isolated-fixture eval harness; head-to-head on S3/S8/S9 (write-heavy) when desired",
+    "Optional: link an Overleaf project; choose a Zotero group library"
   ],
   "in_flight_runs": [],
   "doc_pointers": {
     "roadmap": ".claude/ROADMAP.md",
-    "eval_baseline": "11/11 (2026-07-07), see .claude/prompts/orchestration-evals.md"
+    "eval_result": "8/14 head-to-head pairs, Opus=Fable 5/5 each (2026-07-07); see ROADMAP P0-d",
+    "repo": "github.com/DrNeuroAI/ai-research-orchestration (private)"
   }
 }

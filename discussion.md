@@ -9,7 +9,7 @@ Hypotheses, research notes, decisions, reviews, plans, and state. Multi-writer d
 | PLAN-2026-28 | Adversarial submission-grade review of example.pdf + multiagent usability report | complete — firm verdict MAJOR REVISION (JBHI); two report files delivered; critic gate passed (4 defects incl. one AUROC misquote corrected + verified) |
 | PLAN-2026-28b | Usability re-verification of the orchestration system, headlined by functional verification of the paper-research MCP servers (literature + zotero) | complete — MCP servers PASS (live-verified) but research-agent wiring FAIL (BUG-003); coverage 4 backends / ~300M+ unique works; hooks 7/8 (BUG-001 critical: gate override bypass); v2 report delivered, critic gate PASS-WITH-FIXES, fixes applied + verified |
 | PLAN-2026-28c | README coverage section + fix BUG-001/002/003 + hygiene items; usability-folder follow-ups dropped by user | complete — README coverage block added (figures byte-matched); all three BUGs fixed and qa-verified resolved (tests/repro 10/10 green; live MCP re-probe passed); ADR-001 grants applied; hygiene done; usability follow-ups dropped-by-user |
-| PLAN-2026-28d | Split unpushed bfc4e00 into 5 per-concern branches/PRs (fix gate / feat MCP access / docs README / chore hygiene / docs research-log) | awaiting user approval — planning only, no git mutations executed |
+| PLAN-2026-28d | Split unpushed bfc4e00 into 5 per-concern branches/PRs (fix gate / feat MCP access / docs README / chore hygiene / docs research-log) | complete — approved + executed; 5 branches pushed, 5 PRs open (merge docs/research-log PR last), 3 follow-up issues created |
 
 ## [PLAN-2026-28] Manuscript review of example.pdf for JBHI fit | 2026-07-08 | orchestrator-opus
 
@@ -160,6 +160,8 @@ Hypotheses, research notes, decisions, reviews, plans, and state. Multi-writer d
 
 **Status:** awaiting user approval. No branch, reset, or push executed.
 
+**Status update (2026-07-08):** APPROVED by user (verbatim: "detailed description과 함께 Branch 별 PR 날리자. ISSUE도 만들어야 하는 거 있으면 만들자.") and EXECUTED. Branches: fix/experiment-gate-regex a0a9d9b, feat/research-agent-mcp-access f17a6c7, docs/readme-literature-coverage 9272907, chore/repo-hygiene c566c82, docs/research-log-2026-07-08 dc928e8 (+ this commit). Local main reset to 052ab17; five branches pushed, no force; 19/19 bfc4e00 files reconciled, stashed doc edits preserved. PRs: PR1 https://github.com/DrNeuroAI/ai-research-orchestration/pull/4 (fix/experiment-gate-regex), PR2 https://github.com/DrNeuroAI/ai-research-orchestration/pull/5 (feat/research-agent-mcp-access), PR3 https://github.com/DrNeuroAI/ai-research-orchestration/pull/6 (docs/readme-literature-coverage), PR4 https://github.com/DrNeuroAI/ai-research-orchestration/pull/7 (chore/repo-hygiene), PR5 https://github.com/DrNeuroAI/ai-research-orchestration/pull/8 (docs/research-log-2026-07-08, "merge PR5 LAST"). Issues: A (MCP re-probe) https://github.com/DrNeuroAI/ai-research-orchestration/issues/1, B (S2_API_KEY) https://github.com/DrNeuroAI/ai-research-orchestration/issues/2, C (pytest-timeout install) https://github.com/DrNeuroAI/ai-research-orchestration/issues/3. Retroactive issues for resolved BUG-001/002/003 deliberately not created — error.md and the PR descriptions carry that record; closed-on-arrival issues would be noise.
+
 ---
 
 ## [STATE-2026-07-08 · fixes complete, all BUGs resolved] | orchestrator
@@ -186,6 +188,36 @@ Hypotheses, research notes, decisions, reviews, plans, and state. Multi-writer d
 **Open bugs:** BUG-001 (critical — fix `experiment_gate.py` regex anchoring before any real experiment; red regression tests at `tests/repro/`), BUG-002 (major), BUG-003 (major — decide whether to grant `mcp__*` tools and/or `Bash` to brainstorm/critic/writer, then re-probe).
 **Pending reviews:** none — no blocking REV/VAL open.
 **Next:** user decision on fix authorization for BUG-001/002/003; minor hygiene items (CLAUDE.md agent-memory comment, `.pytest_cache/` gitignore, `pytest-timeout` in requirement.txt, `S2_API_KEY` for rate-limit-free `all`-source searches).
+
+---
+
+## [STATE-2026-07-08 · PLAN-2026-28d executed: 5 PRs open] | orchestrator
+
+**Task:** PLAN-2026-28d — user-approved split of unpushed commit `bfc4e00` into 5 per-concern branches/PRs, plus follow-up issues for residual open items.
+
+**Repo state:** local `main` reset to `origin/main` `052ab17`; the work is re-landed as five one-commit branches, all pushed to origin, nothing merged into `main`.
+
+**Pull requests (base `main`, all open):**
+
+| PR | Branch | Commit | Description |
+|:--|:--|:--|:--|
+| [#4](https://github.com/DrNeuroAI/ai-research-orchestration/pull/4) | `fix/experiment-gate-regex` | a0a9d9b | Fix experiment gate env-prefix bypass and mention false positives (BUG-001, BUG-002) |
+| [#5](https://github.com/DrNeuroAI/ai-research-orchestration/pull/5) | `feat/research-agent-mcp-access` | f17a6c7 | Grant scoped MCP literature/Zotero access to research agents (BUG-003, ADR-001) |
+| [#6](https://github.com/DrNeuroAI/ai-research-orchestration/pull/6) | `docs/readme-literature-coverage` | 9272907 | Add literature search coverage section to README (PLAN-2026-28c) |
+| [#7](https://github.com/DrNeuroAI/ai-research-orchestration/pull/7) | `chore/repo-hygiene` | c566c82 | Repo hygiene: ignore rules, test dependency, layout notes (PLAN-2026-28c) |
+| [#8](https://github.com/DrNeuroAI/ai-research-orchestration/pull/8) | `docs/research-log-2026-07-08` | dc928e8 + this commit | Record 2026-07-08 verification and fix cycle in project docs |
+
+**Follow-up issues:**
+
+| Issue | Tag | Description |
+|:--|:--|:--|
+| [#1](https://github.com/DrNeuroAI/ai-research-orchestration/issues/1) | MCP re-probe | Live re-probe critic and writer MCP tool access (ADR-001 residual) |
+| [#2](https://github.com/DrNeuroAI/ai-research-orchestration/issues/2) | S2_API_KEY | Configure S2_API_KEY to avoid Semantic Scholar rate limiting on all-source searches |
+| [#3](https://github.com/DrNeuroAI/ai-research-orchestration/issues/3) | pytest-timeout | Install pytest-timeout in the environment (pinned in requirement.txt but missing) |
+
+**Merge order:** PRs #4–#7 may merge in any order; PR #8 (`docs/research-log-2026-07-08`) merges LAST so main's logs describe merged reality.
+
+**Next actions:** user merges the PRs; issue #1 is the only agent-actionable follow-up (issues #2 and #3 are environment/credential actions for the user). Retroactive issues for resolved BUG-001/002/003 were deliberately not filed — error.md and the PR descriptions carry that record.
 
 ---
 

@@ -230,7 +230,7 @@ project/
 ├── .claude/prompts/          # orchestrator cores (Fable 5 + Opus 4.8 backport), delegation contracts
 ├── .claude/hooks/            # experiment_gate.py, session_brief.py, session_close_gate.py
 ├── .claude/scripts/          # run_with_status.sh, sweep_summary.py, lit_search.py, overleaf_sync.sh
-├── .claude/agent-memory/     # persistent cross-session memory (orchestrator, brainstorm, critic)
+├── .claude/agent-memory/     # persistent cross-session memory (orchestrator, orchestrator-opus, brainstorm, critic)
 ├── .claude/state/            # handoff.json — structured session hand-off (agent layer)
 ├── .claude/OVERLEAF.md       # per-project Overleaf linking guide (token: settings.local.json)
 ├── .claude/ZOTERO.md         # Zotero library integration guide (key: settings.local.json)
@@ -241,7 +241,7 @@ project/
 ├── evaluation/               # developer (metrics + eval drivers)
 ├── analysis/                 # data (EDA notebooks)
 ├── experiments/              # experiment-tracker (per-run dirs, gitignored)
-├── tests/                    # developer + qa
+├── tests/                    # developer + qa — local-only in this deployment (gitignored by owner decision); regression-test verification evidence lives in error.md
 ├── docs/                     # writer (reports, paper drafts)
 ├── run.sh                    # developer (training/inference entry)
 ├── evaluate.sh               # developer (eval entry)

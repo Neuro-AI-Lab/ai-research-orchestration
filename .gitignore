@@ -38,6 +38,9 @@ runs/
 .claude/settings.local.json
 docs/paper*/
 
+# personal session hand-off (agent state) — live file is per-user; ship the .example instead
+.claude/state/handoff.json
+
 # Third-party reference material — not redistributed (system-prompt collections used as design
 # sources; provenance documented in .claude/prompts/README.md)
 ai-systemprompts-reference/

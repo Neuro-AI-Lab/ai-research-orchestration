@@ -108,6 +108,11 @@ they left off.
 - **Nothing sensitive is committed:** `data/`, `experiments/`, Overleaf clones, and your secrets
   are all gitignored.
 
+Optional — session continuity across restarts: `cp .claude/state/handoff.json.example
+.claude/state/handoff.json`. The live file is gitignored and holds your project's real state; the
+committed `.example` is an empty schema. This is not required — the SessionStart/Stop hooks that
+read it degrade gracefully (print "no hand-off yet") when the live file is absent.
+
 ---
 
 ## 한국어 빠른 설정
@@ -123,6 +128,11 @@ claude
 **핵심 연구 파이프라인은 자격증명 없이 바로 동작합니다** — 가설·코드·실험·게이트·리포트 전부.
 비밀 값은 선택적 통합(Zotero, Overleaf, 문헌 API 상향)을 켤 때만, 필요한 시점에 하나씩 추가하면
 됩니다.
+
+선택 사항 — 세션 간 연속성: `cp .claude/state/handoff.json.example .claude/state/handoff.json`.
+실시간 파일은 gitignore 대상이며 실제 프로젝트 상태를 담고, 커밋된 `.example`은 빈 스키마입니다.
+필수는 아닙니다 — 이 파일을 읽는 SessionStart/Stop 훅은 파일이 없어도 "no hand-off yet"을 출력하며
+정상적으로 동작합니다.
 
 ### 채워 넣을 값 (전부 선택, 전부 마스킹·gitignore)
 

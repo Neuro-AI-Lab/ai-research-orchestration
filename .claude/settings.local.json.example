@@ -12,6 +12,8 @@
     "ZOTERO_API_KEY": "",
     "ZOTERO_USER_ID": "",
     "ZOTERO_GROUP_ID": "",
+    "_zotero_local": "OPTIONAL alternative to the API key above. Set to \"1\" if Zotero desktop runs on this machine — uses its local API (http://localhost:23119), no key needed.",
+    "ZOTERO_LOCAL": "",
 
     "_overleaf": "OPTIONAL. Overleaf git token for paper collaboration (Account Settings -> Git Integration; premium feature). Guide: .claude/OVERLEAF.md",
     "OVERLEAF_GIT_TOKEN": "",

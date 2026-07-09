@@ -197,6 +197,10 @@ yet.
 
 That is the shape every real entry follows. You will not need to write these yourself — the agents
 produce them; this appendix exists only so a first-time reader recognizes the format on sight.
+Optional — session continuity across restarts: `cp .claude/state/handoff.json.example
+.claude/state/handoff.json`. The live file is gitignored and holds your project's real state; the
+committed `.example` is an empty schema. This is not required — the SessionStart/Stop hooks that
+read it degrade gracefully (print "no hand-off yet") when the live file is absent.
 
 ---
 
@@ -234,6 +238,10 @@ Claude Code는 설정 파일을 두 개 따로 읽으며, 존재 이유가 다�
 요약: `settings.json`은 "에이전트가 무엇을 해도 되는가"(행동 규칙 — 공유해도 안전)에 대한
 답이고, `settings.local.json`은 "이 세션이 어떤 비밀을 갖고 있는가"(개인 정보 — 반드시 비공개)
 에 대한 답입니다. 질문이 다르니 형식도 다릅니다.
+선택 사항 — 세션 간 연속성: `cp .claude/state/handoff.json.example .claude/state/handoff.json`.
+실시간 파일은 gitignore 대상이며 실제 프로젝트 상태를 담고, 커밋된 `.example`은 빈 스키마입니다.
+필수는 아닙니다 — 이 파일을 읽는 SessionStart/Stop 훅은 파일이 없어도 "no hand-off yet"을 출력하며
+정상적으로 동작합니다.
 
 ### 채워 넣을 값 (전부 선택, 전부 마스킹·gitignore)
 

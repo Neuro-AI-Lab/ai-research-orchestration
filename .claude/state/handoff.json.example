@@ -1,0 +1,9 @@
+{
+  "_comment": "SETUP: schema template for the agent session hand-off. Copy to .claude/state/handoff.json (gitignored) — the live file holds YOUR project's real state and must never be committed. The SessionStart/Stop hooks read the live file and degrade gracefully if it is absent. Full guide: SETUP.md.",
+  "updated_at": "",
+  "summary": "",
+  "open_items": [],
+  "next_actions": [],
+  "in_flight_runs": [],
+  "doc_pointers": {}
+}

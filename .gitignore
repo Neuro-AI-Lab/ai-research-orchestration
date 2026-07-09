@@ -49,3 +49,6 @@ reference_source/
 
 # Third-party paper PDFs (copyright) — your own reading notes in papers/notes/ ARE tracked
 papers/*.pdf
+usability_local_test
+tests
+.pytest_cache/

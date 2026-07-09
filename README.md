@@ -125,6 +125,34 @@ Zotero = canonical bibliographic store, original PDFs in `papers/`, durable per-
 notes in `papers/notes/`, current-version relevance summaries as RES entries in `discussion.md`.
 (ResearchGate is deliberately excluded — it has no public API; OpenAlex/S2 cover the need.)
 
+**Literature search coverage** — what the literature MCP (`lit_search` / `lit_fetch`, `.mcp.json`)
+can actually reach, verified live against each provider's own API/about pages on 2026-07-08:
+
+| Backend | Indexes | Verified scale |
+|---|---|---|
+| arXiv | preprints — physics, math, CS, quantitative biology, and more (8 subject areas) | >3,000,000 preprints |
+| OpenAlex | aggregator spanning journals, conference proceedings, and repositories | 319,077,593 works across 282,505 sources |
+| PubMed / MEDLINE | biomedical and life-sciences literature | 40,830,218 citations; >5,200 MEDLINE-indexed journals |
+| Semantic Scholar | papers across CS, biomedicine, and beyond | >200,000,000 papers (per-venue source count not published by the provider — UNVERIFIED) |
+
+Effective reach: on the order of **~300M+ unique works across ~290,000+ journals/venues/archives**
+after de-duplication. OpenAlex and Semantic Scholar both re-index arXiv and PubMed/MEDLINE, so a
+gross sum of the four rows above double-counts heavily — the ~300M/~290k figures are the honest,
+de-duplicated estimate, not a sum of the table. Individual venue names aren't enumerable at that
+scale, so the table above characterizes what each platform spans rather than listing venues.
+
+Content depth: `lit_search` / `lit_fetch` return abstract + metadata for arXiv, OpenAlex, and
+Semantic Scholar; the PubMed path returns metadata only (no abstract). Neither tool parses PDFs
+into full text — full-text reading is available only through the separate Zotero path
+(`zotero_fulltext`) for items already in the user's library, or by downloading a PDF manually into
+`papers/`.
+
+Practical caveat: without an `S2_API_KEY`, Semantic Scholar shares a public rate-limit pool and can
+return `HTTP 429` on `all`-source fan-out searches (see the credentials table above to fix this).
+
+Platform stats change over time — the figures above were live-verified on 2026-07-08; re-check
+before citing them elsewhere.
+
 **Long-running experiments** — anything over ~2 minutes launches through
 `.claude/scripts/run_with_status.sh`, which maintains a `status.json` heartbeat and survives
 session death; the next session automatically detects and adopts orphaned runs. Sweeps and

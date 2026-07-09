@@ -167,6 +167,59 @@ The `---` separator at the end is mandatory. Within a version, entries are appen
 - `ADR-NNN` -> must list inputs (`REV-`, `BUG-`, `HYP-`) considered
 - Cross-version references use `VER-NNN:EXP-NNN` format when citing archived entries
 
+## Distribution discipline (maintainers)
+
+This template doubles as the maintainer's own personal research instance. That dual use caused a
+real leak: personal research entries were committed to `discussion.md` and `error.md` and merged
+into the distribution `main` (reverted in PRs #11/#2). ADR-003 is the fix — a **discipline**
+approach, not a technical one: the four root docs and `.claude/agent-memory/**` stay tracked (they
+are load-bearing for the version-management model and the `session_close_gate.py` hook), so the
+boundary is enforced by maintainer process, not by `.gitignore`.
+
+- **The four root docs are scaffolding, not content.** `result.md`, `discussion.md`, `error.md`,
+  `version.md` exist so a *downstream user* can run their own research inside this template. In
+  the distributed template they ship as clean, empty templates (header + empty summary tables
+  only) — never populated with a real project's `HYP`/`RES`/`DATASET`/`EXP`/`REV`/`REPORT`
+  entries.
+- **Personal research never reaches distribution `main`.** Any entry carrying real project
+  content — hypotheses, datasets, results, reviews tied to the maintainer's own work — belongs on
+  a private fork, a private instance, or local uncommitted working state. It must never be
+  committed to, or merged into, this repo's distribution `main`.
+- **`.claude/agent-memory/**` commits only generic, project-agnostic seed wisdom** (e.g., reusable
+  lessons about gate discipline, leakage checklists, review patterns). Personal or
+  project-specific lessons (real dataset names, real findings, real paper titles) stay local and
+  are never committed here.
+- **`handoff.json` is already gitignored** (ADR-002): `.claude/state/handoff.json` holds live
+  personal session state and stays local; only `.claude/state/handoff.json.example` (a clean
+  schema stub) is tracked. No further action needed here — noted for completeness.
+
+### Pre-distribution checklist (run before merging anything to distribution `main`)
+
+Before opening or merging a PR that touches the root docs or `.claude/agent-memory/**`, the
+maintainer runs:
+
+1. **Diff scope check** — inspect exactly what changed in the docs that can leak:
+   ```
+   git diff origin/main..HEAD -- discussion.md result.md error.md version.md .claude/agent-memory
+   ```
+2. **Personal-marker grep** — grep that diff for the maintainer's own running list of personal
+   project markers (real project codenames, real dataset names, real paper/journal titles, real
+   author names). Any hit blocks the merge until scrubbed:
+   ```
+   git diff origin/main..HEAD -- discussion.md result.md error.md version.md .claude/agent-memory \
+     | grep -iE 'YOUR-PROJECT-CODENAME|your-dataset-name|your-paper-title|your-name'
+   ```
+   (replace the pattern with the maintainer's actual personal-content marker list before running).
+3. **Empty-template check** — confirm `result.md`, `discussion.md`, `error.md` summary tables
+   contain no real entry rows (template placeholders only) if the distribution snapshot is meant
+   to be a fresh-start template.
+4. **agent-memory review** — read every changed `.claude/agent-memory/<role>/MEMORY.md` line by
+   line; confirm each lesson is generic and would make sense to a stranger's unrelated project.
+5. **Any hit at any step blocks the merge.** Scrub (rewrite the entry, drop the line, or move it
+   to a local-only doc) and re-run the checklist before merging.
+
+**Linked:** ADR-002, ADR-003.
+
 ## Three universal concerns
 
 These three failure modes destroy research projects. Every agent's spec has tailored rules; the universal version:

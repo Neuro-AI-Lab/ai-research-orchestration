@@ -94,7 +94,7 @@ Full instructions in [SETUP.md](SETUP.md). Summary:
 
 | Value | Unlocks | Where to get it |
 |---|---|---|
-| `ZOTERO_API_KEY` + `ZOTERO_USER_ID` (or `ZOTERO_GROUP_ID`) | Zotero library search, PDF reading, save-back, BibTeX | [zotero.org/settings/keys](https://www.zotero.org/settings/keys) — see `.claude/ZOTERO.md` |
+| `ZOTERO_API_KEY` + `ZOTERO_USER_ID` (or `ZOTERO_GROUP_ID`; or `ZOTERO_LOCAL=1` for a local Zotero desktop app, no key needed) | Zotero library search, PDF reading, save-back, BibTeX | [zotero.org/settings/keys](https://www.zotero.org/settings/keys) — see `.claude/ZOTERO.md` |
 | `OVERLEAF_GIT_TOKEN` | Overleaf paper sync | Overleaf → Account Settings → Git Integration — see `.claude/OVERLEAF.md` |
 | `S2_API_KEY` | higher Semantic Scholar rate limits | [semanticscholar.org/product/api](https://www.semanticscholar.org/product/api) |
 | `LIT_CONTACT_EMAIL` | faster OpenAlex "polite pool" | your email (no signup) |
@@ -195,16 +195,16 @@ per role). A SessionStart hook injects both into every new session.
 ├── .claude/
 │   ├── agents/                # 10 agent specs (2 orchestrator variants + 8 specialists)
 │   ├── skills/                # 8 skills (6 research disciplines + orchestration + specialist-core)
-│   ├── prompts/               # orchestrator prompt cores, delegation contracts, eval scenarios
-│   ├── hooks/                 # experiment gate, session brief, session close gate
-│   ├── scripts/               # lit_search, literature_mcp, zotero_mcp, overleaf_sync, run_with_status, sweep_summary
-│   ├── agent-memory/          # persistent per-role memory
-│   ├── state/                 # handoff.json (session continuity)
-│   ├── OVERLEAF.md            # per-project Overleaf linking guide
-│   ├── ZOTERO.md              # Zotero library integration guide
-│   ├── ROADMAP.md             # eval evidence + phased improvement plan
-│   ├── settings.json          # hooks + permission allowlist (committed)
-│   └── settings.local.json    # YOUR tokens (gitignored; copy from .example)
+│   ├── prompts/                # orchestrator prompt cores, delegation contracts, eval scenarios
+│   ├── hooks/                  # experiment gate, session brief, session close gate
+│   ├── scripts/                # lit_search, literature_mcp, zotero_mcp, overleaf_sync, run_with_status, sweep_summary
+│   ├── agent-memory/            # persistent per-role memory
+│   ├── state/                   # handoff.json (session continuity)
+│   ├── OVERLEAF.md              # per-project Overleaf linking guide
+│   ├── ZOTERO.md                # Zotero library integration guide
+│   ├── ROADMAP.md               # eval evidence + phased improvement plan
+│   ├── settings.json            # hooks + permission allowlist (committed)
+│   └── settings.local.json      # YOUR tokens (gitignored; copy from .example)
 ├── .mcp.json                  # MCP servers: literature (arXiv/OpenAlex/PubMed/S2) + zotero
 ├── papers/                    # reference PDFs + notes/ (durable reading notes)
 ├── data/ · experiments/       # datasets and run artifacts (gitignored)

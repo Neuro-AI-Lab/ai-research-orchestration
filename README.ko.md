@@ -93,7 +93,7 @@ claude                                                               # Claude Co
 
 | 값 | 켜지는 기능 | 발급처 |
 |---|---|---|
-| `ZOTERO_API_KEY` + `ZOTERO_USER_ID` (또는 `ZOTERO_GROUP_ID`) | Zotero 검색·PDF 정독·save-back·BibTeX | [zotero.org/settings/keys](https://www.zotero.org/settings/keys) — `.claude/ZOTERO.md` |
+| `ZOTERO_API_KEY` + `ZOTERO_USER_ID` (또는 `ZOTERO_GROUP_ID`; 또는 `ZOTERO_LOCAL=1`로 로컬 Zotero 데스크톱 앱 사용, 키 불필요) | Zotero 검색·PDF 정독·save-back·BibTeX | [zotero.org/settings/keys](https://www.zotero.org/settings/keys) — `.claude/ZOTERO.md` |
 | `OVERLEAF_GIT_TOKEN` | Overleaf 논문 동기화 | Overleaf → Account Settings → Git Integration — `.claude/OVERLEAF.md` |
 | `S2_API_KEY` | Semantic Scholar 쿼터 상향 | [semanticscholar.org/product/api](https://www.semanticscholar.org/product/api) |
 | `LIT_CONTACT_EMAIL` | OpenAlex polite pool(더 빠름) | 본인 이메일 (가입 불필요) |
@@ -121,6 +121,33 @@ python3 .claude/scripts/lit_search.py openalex "EEG emotion recognition" \
 Zotero = 정본 서지 저장소, 원문 PDF는 `papers/`, 버전 전환에도 살아남는 정독 노트는
 `papers/notes/`, 현재 버전의 관련성 요약은 `discussion.md`의 RES 엔트리. (ResearchGate는 공개
 API가 없어 의도적으로 제외 — OpenAlex/S2가 대체합니다.)
+
+**문헌 검색 커버리지** — 문헌 MCP(`lit_search` / `lit_fetch`, `.mcp.json`)가 실제로 도달할 수
+있는 범위입니다. 각 제공처의 API/소개 페이지를 2026-07-08에 직접 확인했습니다:
+
+| 백엔드 | 색인 범위 | 확인된 규모 |
+|---|---|---|
+| arXiv | 프리프린트 — 물리학, 수학, CS, 정량생물학 등 (8개 주제 분야) | 3,000,000편 이상 |
+| OpenAlex | 저널·학회 proceedings·리포지터리를 아우르는 집계 색인 | 소스 282,505개에 걸친 논문 319,077,593편 |
+| PubMed / MEDLINE | 생의학·생명과학 문헌 | 인용 40,830,218건; MEDLINE 색인 저널 5,200개 이상 |
+| Semantic Scholar | CS·생의학 등 전 분야 논문 | 200,000,000편 이상 (제공처가 저널·소스 수를 공개하지 않음 — UNVERIFIED) |
+
+실질적 도달 범위: 중복 제거 후 대략 **저널/학회/아카이브 약 290,000곳 이상에 걸친 고유 논문
+약 3억편 이상**입니다. OpenAlex와 Semantic Scholar 둘 다 arXiv·PubMed/MEDLINE을 재색인하므로
+위 표 네 행을 단순 합산하면 크게 중복 계산됩니다 — 약 3억/약 29만이라는 수치는 표의 합이 아니라
+정직하게 중복 제거한 추정치입니다. 이 규모에서는 개별 저널명을 나열할 수 없으므로, 위 표는
+저널 목록이 아니라 각 플랫폼이 다루는 범위의 성격을 나타냅니다.
+
+콘텐츠 깊이: `lit_search` / `lit_fetch`는 arXiv·OpenAlex·Semantic Scholar에 대해 초록 +
+메타데이터를 반환하고, PubMed 경로는 메타데이터만 반환합니다(초록 없음). 두 도구 모두 PDF를
+전문(full text)으로 파싱하지 않습니다 — 전문 읽기는 사용자 라이브러리에 이미 있는 항목에 한해
+별도의 Zotero 경로(`zotero_fulltext`)로만 가능하거나, PDF를 직접 `papers/`에 내려받아야 합니다.
+
+실무상 주의점: `S2_API_KEY` 없이는 Semantic Scholar가 공용 쿼터를 공유하므로 `all` 소스
+팬아웃 검색에서 `HTTP 429`가 날 수 있습니다(해결법은 위 자격증명 표 참고).
+
+플랫폼 통계는 시간에 따라 변합니다 — 위 수치는 2026-07-08에 실시간으로 확인한 값입니다;
+다른 곳에 인용하기 전에 재확인하세요.
 
 **장시간 실험** — 약 2분을 넘는 작업은 `.claude/scripts/run_with_status.sh`로 실행되어
 `status.json` 하트비트를 유지하고 세션이 죽어도 생존합니다; 다음 세션이 고아 런을 자동 감지해
@@ -163,16 +190,16 @@ pull → 수치마다 출처 주석(`% source: EXP-003`)을 달아 편집 → pu
 ├── .claude/
 │   ├── agents/                # 에이전트 스펙 10개 (orchestrator 2변형 + 전문가 8)
 │   ├── skills/                # 스킬 8개 (연구 규율 6 + orchestration + specialist-core)
-│   ├── prompts/               # 오케스트레이터 프롬프트 코어, 위임 계약, 평가 시나리오
-│   ├── hooks/                 # 실험 게이트, 세션 브리핑, 세션 종료 게이트
-│   ├── scripts/               # lit_search, literature_mcp, zotero_mcp, overleaf_sync, run_with_status, sweep_summary
-│   ├── agent-memory/          # 역할별 영속 메모리
-│   ├── state/                 # handoff.json (세션 연속성)
-│   ├── OVERLEAF.md            # 프로젝트별 Overleaf 연동 가이드
-│   ├── ZOTERO.md              # Zotero 라이브러리 연동 가이드
-│   ├── ROADMAP.md             # 평가 증거 + 단계별 고도화 계획
-│   ├── settings.json          # 훅 + 권한 allowlist (커밋됨)
-│   └── settings.local.json    # 개인 토큰 (gitignore; .example에서 복사)
+│   ├── prompts/                # 오케스트레이터 프롬프트 코어, 위임 계약, 평가 시나리오
+│   ├── hooks/                  # 실험 게이트, 세션 브리핑, 세션 종료 게이트
+│   ├── scripts/                # lit_search, literature_mcp, zotero_mcp, overleaf_sync, run_with_status, sweep_summary
+│   ├── agent-memory/            # 역할별 영속 메모리
+│   ├── state/                   # handoff.json (세션 연속성)
+│   ├── OVERLEAF.md              # 프로젝트별 Overleaf 연동 가이드
+│   ├── ZOTERO.md                # Zotero 라이브러리 연동 가이드
+│   ├── ROADMAP.md               # 평가 증거 + 단계별 고도화 계획
+│   ├── settings.json            # 훅 + 권한 allowlist (커밋됨)
+│   └── settings.local.json      # 개인 토큰 (gitignore; .example에서 복사)
 ├── .mcp.json                  # MCP 서버: literature (arXiv/OpenAlex/PubMed/S2) + zotero
 ├── papers/                    # 참고 PDF + notes/ (영속 정독 노트)
 ├── data/ · experiments/       # 데이터셋·실행 산출물 (gitignore)

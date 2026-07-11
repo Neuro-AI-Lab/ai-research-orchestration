@@ -75,6 +75,6 @@ forbids claiming to be Fable 5 or Mythos-class.
 2. Schema changes go into `result-contract.md` only; the cores and agent specs reference it.
 3. Shared playbook changes (fleet sizing, failure ladders, anti-patterns) go into
    `.claude/skills/multiagent-orchestration/SKILL.md`.
-4. New specialists: add the spec under `.claude/agents/` with `model: sonnet`, the version
-   management block, and the Result contract section; add rows to CLAUDE.md's agent and skills
-   tables.
+4. New specialists: add the spec under `.claude/agents/` with `model: sonnet`, an explicit
+   `effort:` level per CLAUDE.md's model tiering policy, the version management block, and the
+   Result contract section; add rows to CLAUDE.md's agent and skills tables.

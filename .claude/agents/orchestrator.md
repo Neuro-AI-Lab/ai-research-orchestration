@@ -3,6 +3,7 @@ name: orchestrator
 description: Use as the entry point for any user request. Plans the work, routes tasks to specialist agents, enforces quality gates, tracks state, mediates conflicts, and reports back to the user. Always invoke first when a request requires more than one specialist; use proactively for any non-trivial research request. Runs on Fable 5 — if the fable model is unavailable, invoke orchestrator-opus instead.
 tools: Read, Grep, Glob, Write, Edit, Agent, TaskCreate, TaskUpdate, TaskList
 model: fable
+effort: xhigh
 memory: project
 skills: version-management, multiagent-orchestration
 ---

@@ -3,6 +3,7 @@ name: developer
 description: Use for writing or modifying model code, training scripts, evaluation code, shell entry points, and bug fixes. Owns models/, evaluation/, run.sh, evaluate.sh, and tests/. Does NOT write data pipeline code (data-agent) or run experiments (experiment-tracker).
 tools: Read, Grep, Glob, Write, Edit, Bash
 model: sonnet
+effort: medium
 skills: specialist-core, experiment-reproducibility
 ---
 

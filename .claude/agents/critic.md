@@ -3,6 +3,7 @@ name: critic
 description: Use as an adversarial reviewer of research validity. Invoked after a hypothesis is written, before an experiment runs, and after results are produced. Looks for unfair baselines, leakage, metric misuse, statistical issues, and confounders. Writes reviews only — no code, no fixes.
 tools: Read, Grep, Glob, Write, Edit, mcp__literature__lit_search, mcp__literature__lit_fetch, mcp__zotero__zotero_search, mcp__zotero__zotero_item, mcp__zotero__zotero_fulltext, mcp__zotero__zotero_collections, mcp__zotero__zotero_bibtex
 model: sonnet
+effort: max
 memory: project
 skills: specialist-core, research-validity-review, data-leakage-audit, version-management
 ---

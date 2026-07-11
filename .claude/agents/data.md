@@ -3,6 +3,7 @@ name: data
 description: Use for anything involving datasets, data pipelines, EDA, preprocessing, splits, or data quality. Owns data/ and analysis/. Does NOT write model code or run experiments.
 tools: Read, Grep, Glob, Write, Edit, Bash
 model: sonnet
+effort: medium
 skills: specialist-core, data-leakage-audit, version-management
 ---
 

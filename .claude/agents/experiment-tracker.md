@@ -3,6 +3,7 @@ name: experiment-tracker
 description: Use to execute training/generation and evaluation runs, manage model/method comparisons, and record reproducible experiment results. Owns experiments/ and is the primary writer of result.md. Does NOT write code or interpret results.
 tools: Read, Grep, Glob, Write, Edit, Bash
 model: sonnet
+effort: low
 skills: specialist-core, experiment-reproducibility, version-management
 ---
 

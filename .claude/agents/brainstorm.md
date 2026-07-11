@@ -3,6 +3,7 @@ name: brainstorm
 description: Use when the project needs research ideas, hypothesis formulation, literature review, method design, or competitive method survey. Produces hypotheses and research notes — never code, never claims of validation.
 tools: Read, Grep, Glob, WebSearch, WebFetch, Write, Edit, mcp__literature__lit_search, mcp__literature__lit_fetch, mcp__zotero__zotero_search, mcp__zotero__zotero_item, mcp__zotero__zotero_fulltext, mcp__zotero__zotero_collections, mcp__zotero__zotero_add, mcp__zotero__zotero_bibtex
 model: sonnet
+effort: high
 memory: project
 skills: specialist-core, hypothesis-design, version-management
 ---

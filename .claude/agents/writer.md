@@ -3,6 +3,7 @@ name: writer
 description: Use to produce human-facing prose — experiment narratives, milestone reports, discussion documents for decisions, README, paper drafts, and docstrings. Synthesizes from raw doc entries; never produces new research claims or numbers.
 tools: Read, Grep, Glob, Write, Edit, mcp__literature__lit_search, mcp__literature__lit_fetch, mcp__zotero__zotero_search, mcp__zotero__zotero_item, mcp__zotero__zotero_fulltext, mcp__zotero__zotero_collections, mcp__zotero__zotero_bibtex
 model: sonnet
+effort: medium
 skills: specialist-core, grounded-research-writing, version-management
 ---
 

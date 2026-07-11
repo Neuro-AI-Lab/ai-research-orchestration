@@ -3,6 +3,7 @@ name: filemanager
 description: Use for repository hygiene, directory structure, git operations, dependency files, environment snapshots, and data protection. Owns version.md, setup.sh, requirement.txt, and .gitignore. Does NOT modify code logic or any of the other three root docs.
 tools: Read, Grep, Glob, Write, Edit, Bash
 model: sonnet
+effort: low
 skills: specialist-core, version-management
 ---
 

@@ -8,18 +8,18 @@ The main Claude session is the **conductor** — a dispatcher, not a doer. On an
 
 ### The agent team
 
-| Tier | Agent | Model | Owns (this repo) |
-|---|---|---|---|
-| 1 — Coordination | `orchestrator` | `fable` | Routing, planning, ADRs, gates, talks to the user |
-| 1 — Coordination | `orchestrator-opus` | `opus` | Fallback twin of `orchestrator` (Fable 5 backport prompt) |
-| 2 — Research | `brainstorm` | `sonnet` | Hypotheses, literature, method design, `papers/` |
-| 2 — Research | `data` | `sonnet` | `data/`, `analysis/` |
-| 2 — Research | `critic` | `sonnet` | Adversarial review of validity |
-| 3 — Build | `developer` | `sonnet` | `models/`, `evaluation/`, `run.sh`, `evaluate.sh`, `tests/` |
-| 3 — Verify | `qa` | `sonnet` | `tests/`, bug isolation, gates code before experiments |
-| 4 — Ops | `experiment-tracker` | `sonnet` | `experiments/` (per-run dirs) |
-| 4 — Ops | `filemanager` | `sonnet` | Repo structure, git, env, `setup.sh`, `requirement.txt` |
-| 4 — Ops | `writer` | `sonnet` | `docs/`, human-facing prose, README |
+| Tier | Agent | Model | Effort | Owns (this repo) |
+|---|---|---|---|---|
+| 1 — Coordination | `orchestrator` | `fable` | `xhigh` | Routing, planning, ADRs, gates, talks to the user |
+| 1 — Coordination | `orchestrator-opus` | `opus` | `xhigh` | Fallback twin of `orchestrator` (Fable 5 backport prompt) |
+| 2 — Research | `brainstorm` | `sonnet` | `high` | Hypotheses, literature, method design, `papers/` |
+| 2 — Research | `data` | `sonnet` | `medium` | `data/`, `analysis/` |
+| 2 — Research | `critic` | `sonnet` | `max` | Adversarial review of validity |
+| 3 — Build | `developer` | `sonnet` | `medium` | `models/`, `evaluation/`, `run.sh`, `evaluate.sh`, `tests/` |
+| 3 — Verify | `qa` | `sonnet` | `high` | `tests/`, bug isolation, gates code before experiments |
+| 4 — Ops | `experiment-tracker` | `sonnet` | `low` | `experiments/` (per-run dirs) |
+| 4 — Ops | `filemanager` | `sonnet` | `low` | Repo structure, git, env, `setup.sh`, `requirement.txt` |
+| 4 — Ops | `writer` | `sonnet` | `medium` | `docs/`, human-facing prose, README |
 
 Each agent's full spec is in `.claude/agents/<name>.md`. Read the relevant one before invoking.
 
@@ -36,6 +36,16 @@ delegation contracts live in `.claude/prompts/`; the orchestration playbook is t
 uplift core reverse-engineered from higher-tier prompts (think deeply / answer tightly, bias to
 act, verify before done, faithful reporting) so the fleet reasons at Opus 4.8 grade on a Sonnet 5
 budget.
+
+Model choice is one axis; reasoning depth is a second, independent one. Each agent's frontmatter
+also pins an explicit `effort:` level — `low | medium | high | xhigh | max`, per the official
+subagent frontmatter documentation (https://code.claude.com/docs/en/subagents.md, "Supported
+frontmatter fields") — which overrides the session's inherited effort for that agent alone; the
+table above lists each agent's pinned level. The tiering principle: reasoning depth scales with
+what the charter demands and the cost of a missed error at that station, discounted by how often
+the agent is invoked and by how much of its discipline is already carried by a mandatory skill
+checklist. Available effort levels depend on the underlying model and are not exhaustively
+documented per model, so a pinned level is a request the harness may adapt, not a guarantee.
 
 ### Conductor protocol (main session)
 

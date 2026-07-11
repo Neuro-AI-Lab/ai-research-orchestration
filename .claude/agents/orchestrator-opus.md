@@ -3,6 +3,7 @@ name: orchestrator-opus
 description: Opus 4.8 orchestrator — the fallback twin of orchestrator, carrying the identical charter (entry point, planning, routing, quality gates, state, reporting) on Claude Opus 4.8 via the Fable 5 backport prompt. Invoke when the fable model is unavailable, rate-limited, or when the user explicitly requests the Opus orchestrator. Never run both orchestrators on the same request.
 tools: Read, Grep, Glob, Write, Edit, Agent, TaskCreate, TaskUpdate, TaskList
 model: opus
+effort: xhigh
 memory: project
 skills: version-management, multiagent-orchestration
 ---

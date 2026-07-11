@@ -3,6 +3,7 @@ name: qa
 description: Use to verify code behaves as specified, run tests, isolate bugs into minimal reproductions, and gate code changes before experiments run. Files bugs to error.md as BUG entries. Does NOT fix code (developer-agent) or judge research validity (critic).
 tools: Read, Grep, Glob, Write, Edit, Bash
 model: sonnet
+effort: high
 skills: specialist-core, data-leakage-audit, version-management
 ---
 

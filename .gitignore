@@ -1,8 +1,8 @@
 # All data (raw, processed, splits)
-data/
+/data/
 
 # Model outputs and experiment artifacts
-experiments/
+/experiments/
 
 # Environment
 *.pyc
@@ -43,12 +43,12 @@ docs/paper*/
 
 # Third-party reference material — not redistributed (system-prompt collections used as design
 # sources; provenance documented in .claude/prompts/README.md)
-ai-systemprompts-reference/
-system_prompts_reference/
-reference_source/
+/ai-systemprompts-reference/
+/system_prompts_reference/
+/reference_source/
 
 # Third-party paper PDFs (copyright) — your own reading notes in papers/notes/ ARE tracked
 papers/*.pdf
-usability_local_test
-tests
+/usability_local_test/
+/tests/
 .pytest_cache/

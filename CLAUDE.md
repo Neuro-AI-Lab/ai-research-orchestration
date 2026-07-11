@@ -336,6 +336,55 @@ On any new request from the user, the main Claude session should:
 - No emojis in documents or commits. Commit messages reference at least one doc ID.
 - The user's spoken language is acceptable for conversation; docs and code stay English.
 
+## PR and issue conventions
+
+- **Branch naming:** `type/N-kebab-scope`, where `type` is one of `feat`, `fix`, `docs`, `chore`,
+  `refactor`, `test`, and `N` is the primary tracking issue number (e.g.
+  `docs/19-pr-issue-conventions`). If no tracking issue exists, fall back to `type/kebab-scope`.
+  Never rename the head branch of an already-open PR — renaming breaks the PR.
+- **PR title:** `type: sentence-case summary (#N)` — `type` mirrors the branch type; the trailing
+  `(#N)` cites the primary tracking issue and is omitted only when no issue exists. The summary
+  text after `type:` starts lowercase, conventional-commits style (e.g. `docs: adopt...`,
+  `feat: per-agent...`) — this repo's "sentence case" rule (no title case, no ALL CAPS) still
+  governs everything after that first lowercase word.
+- **Closing keywords go in the body, not the title.** GitHub only auto-closes an issue from
+  `Closes #N` / `Fixes #N` in the PR body (or a commit message) — a title reference is a link, not
+  an auto-close.
+- **Every non-trivial PR references at least one issue or doc ID.** Issues are preferred (visible
+  downstream); a doc ID alone (`ADR-`, `BUG-`, `HYP-`, ...) is acceptable when no tracking issue
+  exists. Doc IDs are cited as identifiers of the maintainer's local decision record, never phrased
+  as a file a downstream reader can open.
+- **Issue title:** `type: sentence-case summary` — same type vocabulary as branches/PRs. A trailing
+  doc-ID parenthetical is allowed when the issue tracks a specific doc entry, e.g.
+  `fix: sentence-case summary (BUG-005)`.
+- **PR description skeleton** (mandatory for non-trivial PRs):
+
+  ```markdown
+  ### Summary
+
+  1-3 sentences: what changed and why.
+
+  **Linked:** Closes #N (auto-close on merge) or Refs #N (association only), plus any doc IDs
+  (maintainer's local decision record — not implied to be visible downstream).
+
+  <!-- no-issue example: -->
+  **Linked:** ADR-004 (maintainer's local decision record) — no tracking issue for this change.
+
+  ### Changes
+
+  | File | Change | Why |
+  |:--|:--|:--|
+
+  ### Verification
+
+  | Check | Command | Result |
+  |:--|:--|:--|
+
+  <!-- optional further sections as the change warrants, e.g.: -->
+  ### Known limitations
+  ### Notes
+  ```
+
 ## When to break the rules
 
 Rules are skippable, but skipping must be explicit. To bypass a mandatory gate (e.g., proceed without critic review on a time-sensitive run), the orchestrator must write an `ADR-NNN` in `discussion.md` with:

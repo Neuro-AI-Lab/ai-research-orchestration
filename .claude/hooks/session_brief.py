@@ -3,9 +3,9 @@
 
 Stdout from this hook is added to the session context. It surfaces, mechanically (no LLM):
   - the structured hand-off from the previous session (.claude/state/handoff.json)
-  - open critical BUGs (error.md) and open blocking REVs (discussion.md)
-  - the most recent STATE entry header (discussion.md)
-  - experiment runs still marked running (experiments/*/status.json), with pid liveness,
+  - open critical BUGs (.claude/research/error.md) and open blocking REVs (.claude/research/discussion.md)
+  - the most recent STATE entry header (.claude/research/discussion.md)
+  - experiment runs still marked running (experiments/claude/*/status.json), with pid liveness,
     so orphaned long runs are adopted instead of forgotten.
 """
 import json
@@ -36,6 +36,13 @@ def entry_id(block):
     return block[4:end] if end > 4 else 'UNKNOWN'
 
 
+def field_passed(block, field):
+    found = re.findall(
+        r'(?mi)^\*{0,2}' + re.escape(field) + r':\*{0,2}\s*([^\n]+)', block
+    )
+    return bool(found and found[-1].strip().lower() in {'pass', 'passed', 'approved', 'clear'})
+
+
 def pid_alive(pid):
     try:
         os.kill(int(pid), 0)
@@ -62,7 +69,7 @@ def main():
         lines.append('- No hand-off file yet (.claude/state/handoff.json) — first session or '
                      'previous session ended without closing properly.')
 
-    error, discussion = read(root, 'error.md'), read(root, 'discussion.md')
+    error, discussion = read(root, '.claude/research/error.md'), read(root, '.claude/research/discussion.md')
     bugs = [entry_id(b) for b in entry_blocks(error)
             if b.startswith('## [BUG-')
             and re.search(r'(?mi)^\*\*Severity:\*\*\s*critical', b)
@@ -76,11 +83,28 @@ def main():
     if revs:
         lines.append(f"- GATE: open blocking REVs: {', '.join(revs)}")
 
+    discussion_blocks = entry_blocks(discussion)
+    positive = {
+        'critic REV': any(re.match(r'## \[REV-\d+\]', block) and field_passed(block, 'Gate')
+                          for block in discussion_blocks),
+        'QA': any(re.match(r'## \[QA-\d+\]', block) and field_passed(block, 'Gate')
+                  for block in discussion_blocks),
+        'DATASET leakage audit': any(
+            re.match(r'## \[DATASET-\d+\]', block) and field_passed(block, 'Leakage audit')
+            for block in discussion_blocks
+        ),
+    }
+    pending = [name for name, passed in positive.items() if not passed]
+    if pending:
+        lines.append('- GATE: experiments still need positive attestation(s): ' + ', '.join(pending))
+    elif not bugs and not revs:
+        lines.append('- GATE: positive critic, QA, and DATASET attestations are present')
+
     states = re.findall(r'(?m)^## \[(STATE-[0-9-]+)\]', discussion)
     if states:
-        lines.append(f'- Last STATE entry: {states[-1]} (read discussion.md for detail)')
+        lines.append(f'- Last STATE entry: {states[-1]} (read .claude/research/discussion.md for detail)')
 
-    exp_dir = os.path.join(root, 'experiments')
+    exp_dir = os.path.join(root, 'experiments', 'claude')
     if os.path.isdir(exp_dir):
         for sub in sorted(os.listdir(exp_dir)):
             spath = os.path.join(exp_dir, sub, 'status.json')

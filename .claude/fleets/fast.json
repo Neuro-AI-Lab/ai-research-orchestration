@@ -1,0 +1,16 @@
+{
+  "preset": "fast",
+  "description": "Cheapest fleet that still respects every research-gate floor: lead drops one effort notch (model unchanged), verification roles sit exactly at their floors, ops roles run on haiku (no effort pin; haiku does not accept one).",
+  "roles": {
+    "orchestrator": {"model": "fable", "effort": "high"},
+    "orchestrator-opus": {"model": "opus", "effort": "high"},
+    "brainstorm": {"model": "sonnet", "effort": "medium"},
+    "data": {"model": "sonnet", "effort": "medium"},
+    "critic": {"model": "sonnet", "effort": "high"},
+    "developer": {"model": "sonnet", "effort": "low"},
+    "qa": {"model": "sonnet", "effort": "high"},
+    "experiment-tracker": {"model": "haiku", "effort": null},
+    "filemanager": {"model": "haiku", "effort": null},
+    "writer": {"model": "sonnet", "effort": "low"}
+  }
+}

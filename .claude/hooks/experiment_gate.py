@@ -3,13 +3,16 @@
 
 Blocks Bash commands that launch experiments (run.sh / evaluate.sh / python models/*.py)
 while any mandatory gate is unmet:
-  - open critical BUG in error.md          (QA gate)
-  - open blocking REV in discussion.md     (critic gate)
-  - no DATASET entry in discussion.md      (data gate / bootstrap rule)
+  - open critical BUG in .claude/research/error.md          (QA gate)
+  - open blocking REV in .claude/research/discussion.md     (critic gate)
+  - no passed critic REV in .claude/research/discussion.md  (positive critic attestation)
+  - no passed QA entry in .claude/research/discussion.md    (positive QA attestation)
+  - no leakage-audited DATASET entry        (positive data attestation)
 
 Documented bypass (mirrors CLAUDE.md "When to break the rules"): write an ADR in
-discussion.md naming the skipped rule, reason, and rollback plan, then prefix the
-command with GATE_OVERRIDE=ADR-NNN. The hook verifies the ADR actually exists.
+.claude/research/discussion.md naming the skipped rule, reason, and rollback plan, then prefix the
+command with GATE_OVERRIDE=ADR-NNN. The hook verifies the ADR exists and carries the mandatory
+Context, Decision, Consequences, and Rollback fields.
 
 Exit 0 = allow. Exit 2 = block; stderr is returned to the agent.
 """
@@ -28,15 +31,8 @@ import sys
 # interpreter word) — while real launches in any position (leading, after ;/&&/|, behind an
 # env-assignment prefix such as GATE_OVERRIDE=..., or as an interpreter's script argument
 # without a `bash -n` syntax-check flag in between) still match.
-#
-# BUG-004: a raw character-class split on `;&|()\n` is quote/heredoc-unaware -- a control
-# character sitting *inside* a quoted string (`grep -E "run.sh|evaluate.sh"`, `echo
-# "(run.sh)"`) or a `\n` inside a heredoc body (`cat <<EOF` / `run.sh` / `EOF`) still
-# produced a segment boundary, carving out a bare `run.sh`/`evaluate.sh` segment that then
-# matched _SCRIPT_LAUNCH even though the text is data, not shell syntax. Fixed below by
-# `_split_segments` (quote-tracking scan) and `_mask_heredocs` (blanks heredoc body lines
-# before splitting). `_SEGMENT_SPLIT` itself is kept only as the legacy fallback splitter --
-# see `is_experiment_launch`.
+# Quote-aware segmentation and heredoc masking prevent data strings from being treated as
+# executable shell segments. The regular-expression splitter is only a fail-closed fallback.
 _SEGMENT_SPLIT = re.compile(r'&&|\|\||[;&|()\n]')
 _ENV_ASSIGN = r'(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*'
 _INTERPRETER = r'(?:(?:bash|sh|zsh|setsid|nohup|exec|source)\s+|\.\s+)?'
@@ -48,12 +44,48 @@ _PYTHON_LAUNCH = re.compile(r'^' + _ENV_ASSIGN + r'python[0-9.]*\s+\S*models/\S+
 # (quoted, suppresses expansion) or `<<\WORD` (backslash-escaped, same effect). The captured
 # group is the literal delimiter word used to find the end of the body below.
 _HEREDOC_START = re.compile(r'<<-?\s*(?:["\'\\])?([A-Za-z_][A-Za-z0-9_]*)')
+_SHELL_STDIN = re.compile(
+    r'^' + _ENV_ASSIGN + r'(?:(?:setsid|nohup|exec)\s+)*(?:bash|sh|zsh)\b'
+)
 
 # A single leading env-var assignment, as consumed one at a time from the front of a
 # segment -- mirrors the repeated group inside `_ENV_ASSIGN` above but capturing the
-# name/value pair so BUG-006's override check can walk the same prefix the launch
-# regexes already matched against, instead of re-scanning the whole command string.
+# name/value pair so the override check walks the same prefix as launch detection.
 _ENV_ASSIGN_ITEM = re.compile(r'^([A-Za-z_][A-Za-z0-9_]*)=(\S*)\s+')
+
+
+def _heredoc_shell_launches(cmd):
+    """Return shell-interpreter heredoc headers whose bodies launch experiments.
+
+    `cat <<EOF` bodies remain data and are ignored. A body fed to bash/sh/zsh is executable
+    shell input, so launch-looking command words inside it must be gated. Returning the header
+    preserves a leading GATE_OVERRIDE assignment on that exact interpreter segment.
+    """
+    lines = cmd.split('\n')
+    launches = []
+    i = 0
+    while i < len(lines):
+        header = lines[i]
+        marker = _HEREDOC_START.search(header)
+        i += 1
+        if not marker:
+            continue
+        delim = marker.group(1)
+        body = []
+        while i < len(lines) and lines[i].strip() != delim:
+            body.append(lines[i])
+            i += 1
+        if i < len(lines):
+            i += 1
+        header_segments = _split_segments(header[:marker.start()])
+        header_segment = header_segments[-1].strip() if header_segments else ''
+        if not _SHELL_STDIN.match(header_segment):
+            continue
+        for segment in _split_segments('\n'.join(body)):
+            candidate = segment.strip()
+            if _SCRIPT_LAUNCH.match(candidate) or _PYTHON_LAUNCH.match(candidate):
+                launches.append(header_segment)
+    return launches
 
 
 def _mask_heredocs(cmd):
@@ -64,12 +96,9 @@ def _mask_heredocs(cmd):
     removed) so line/segment structure outside the heredoc is unaffected; only a run of `\\n`
     splits results, which the scanner below treats as empty segments and skips.
 
-    Known, accepted limitation: this intentionally does not attempt to detect a launch
-    smuggled *through* a heredoc fed to a shell interpreter (e.g. `bash <<EOF` / `./run.sh` /
-    `EOF`, or process substitution, or `eval "$(...)"`). Reasoning that deep about shell
-    semantics is out of scope for a command-word-position heuristic gate (see the hook's
-    module docstring); it was never reliably covered before this fix either, and closing it
-    would require a real shell parser, not a hardening pass on BUG-004.
+    Shell-interpreter heredocs are scanned separately by `_heredoc_shell_launches`; bodies fed
+    to non-shell commands remain data. Process substitution and dynamic eval are outside this
+    heuristic gate and must be controlled by the runtime sandbox and review policy.
     """
     lines = cmd.split('\n')
     out = []
@@ -169,19 +198,16 @@ def _split_segments(cmd):
 def find_launch_segments(cmd):
     """Return the stripped command segments of `cmd` that are actual script launches.
 
-    Shared by `is_experiment_launch` and the BUG-006 override check so both look at
-    exactly the same set of segments -- launch detection and override matching must
-    never disagree about which piece of the command is "the launch".
+    Launch detection and override matching consume this same segment set so they cannot
+    disagree about which piece of the command is the launch.
     """
     try:
         segments = _split_segments(_mask_heredocs(cmd))
     except Exception:
-        # Never let a hook crash break a Bash call. Fall back to the legacy quote-unaware
-        # splitter (the pre-BUG-004-fix behavior): conservative and prone to false-positive
-        # blocks on quoted/heredoc mentions, but that is strictly safer for a security gate
-        # than either crashing the hook or failing open (returning False unconditionally).
+        # Never let a hook crash break a Bash call. The conservative fallback can produce
+        # false-positive blocks, which is safer here than failing open.
         segments = _SEGMENT_SPLIT.split(cmd)
-    launches = []
+    launches = _heredoc_shell_launches(cmd)
     for segment in segments:
         segment = segment.strip()
         if not segment:
@@ -200,11 +226,8 @@ def leading_override(segment):
     """Return the ADR id (e.g. 'ADR-002') if GATE_OVERRIDE=ADR-NNN is a leading
     env-assignment on `segment`, else None.
 
-    BUG-006: the override token must be tied to the *same launch segment*, in the same
-    leading-assignment position `_SCRIPT_LAUNCH`/`_PYTHON_LAUNCH` already require --
-    never merely present somewhere else in the raw command (a comment, an echo, a
-    different segment). Walks the same repeated `NAME=value ` prefix `_ENV_ASSIGN`
-    matches, so `FOO=1 GATE_OVERRIDE=ADR-002 ./run.sh train` still finds it after `FOO=1`.
+    The override must be a leading assignment on the same launch segment, never a token
+    in a comment, an echo, or a different segment. Other leading assignments may precede it.
     """
     rest = segment
     while True:
@@ -228,8 +251,20 @@ def entry_id(block):
 
 
 def last_status(block):
-    found = re.findall(r'(?mi)^\*\*Status:\*\*\s*(\w+)', block)
+    found = re.findall(r'(?mi)^\*{0,2}Status:\*{0,2}\s*([\w-]+)', block)
     return found[-1].lower() if found else None
+
+
+def field_value(block, field):
+    found = re.findall(
+        r'(?mi)^\*{0,2}' + re.escape(field) + r':\*{0,2}\s*([^\n]+)', block
+    )
+    return found[-1].strip().lower() if found else None
+
+
+def field_passed(block, field):
+    value = field_value(block, field) or ''
+    return value in {'pass', 'passed', 'approved', 'clear'}
 
 
 def main():
@@ -253,26 +288,33 @@ def main():
         except OSError:
             return ''
 
-    discussion = read('discussion.md')
-    error = read('error.md')
+    discussion = read('.claude/research/discussion.md')
+    error = read('.claude/research/error.md')
 
-    # BUG-006: only accept an override cited as a leading env-assignment on the
-    # segment it is meant to protect -- never merely mentioned elsewhere in the raw
-    # command (comment, echo, unrelated segment).
-    #
-    # BUG-007: an override on *one* launch segment must not authorize a *different*
-    # launch segment that carries none of its own. Each launch segment is checked for
-    # its own leading override; the whole command is only bypassed if every launch
-    # segment individually cites a valid one. A cited-but-nonexistent ADR is rejected
-    # immediately regardless of the other segments' state (fail closed, existing
-    # message). If any segment has no override at all, the override path does not
-    # apply and the command falls through to the normal gate checks below.
+    # An override applies only to its own launch segment. Every launch segment must cite
+    # a valid ADR for the whole command to bypass the normal gates; missing or incomplete
+    # citations fail closed.
     segment_overrides = [(segment, leading_override(segment)) for segment in launch_segments]
     for segment, override_adr in segment_overrides:
-        if override_adr and not re.search(r'## \[' + re.escape(override_adr) + r'\]', discussion):
+        if not override_adr:
+            continue
+        adr_blocks = [
+            block for block in entry_blocks(discussion)
+            if re.match(r'## \[' + re.escape(override_adr) + r'\]', block)
+        ]
+        if not adr_blocks:
             print(
                 f"GATE: override cited {override_adr}, but no such ADR exists in "
-                "discussion.md. Write the ADR (rule skipped, reason, rollback plan) first.",
+                ".claude/research/discussion.md. Write the ADR (rule skipped, reason, rollback plan) first.",
+                file=sys.stderr,
+            )
+            return 2
+        required_adr_fields = ('Context', 'Decision', 'Consequences', 'Rollback')
+        missing = [field for field in required_adr_fields if not field_value(adr_blocks[-1], field)]
+        if missing:
+            print(
+                f"GATE: override ADR {override_adr} is incomplete; add fields: " +
+                ", ".join(missing) + ".",
                 file=sys.stderr,
             )
             return 2
@@ -281,23 +323,31 @@ def main():
 
     problems = []
     for block in entry_blocks(error):
-        if (block.startswith('## [BUG-')
-                and re.search(r'(?mi)^\*\*Severity:\*\*\s*critical', block)
+        if (re.match(r'## \[BUG-\d+\]', block)
+                and re.search(r'(?mi)^\*{0,2}Severity:\*{0,2}\s*critical', block)
                 and last_status(block) == 'open'):
-            problems.append(f'open critical {entry_id(block)} in error.md')
+            problems.append(f'open critical {entry_id(block)} in .claude/research/error.md')
     for block in entry_blocks(discussion):
-        if (block.startswith('## [REV-')
-                and re.search(r'(?mi)^\*\*Severity:\*\*\s*blocking', block)
+        if (re.match(r'## \[REV-\d+\]', block)
+                and re.search(r'(?mi)^\*{0,2}Severity:\*{0,2}\s*blocking', block)
                 and last_status(block) == 'open'):
-            problems.append(f'open blocking {entry_id(block)} in discussion.md')
-    if not re.search(r'## \[DATASET-\d+\]', discussion):
-        problems.append('no DATASET entry in discussion.md (split undocumented / bootstrap incomplete)')
+            problems.append(f'open blocking {entry_id(block)} in .claude/research/discussion.md')
+    blocks = entry_blocks(discussion)
+    dataset_blocks = [block for block in blocks if re.match(r'## \[DATASET-\d+\]', block)]
+    critic_blocks = [block for block in blocks if re.match(r'## \[REV-\d+\]', block)]
+    qa_blocks = [block for block in blocks if re.match(r'## \[QA-\d+\]', block)]
+    if not any(field_passed(block, 'Leakage audit') for block in dataset_blocks):
+        problems.append('no DATASET entry with **Leakage audit:** passed in .claude/research/discussion.md')
+    if not any(field_passed(block, 'Gate') for block in critic_blocks):
+        problems.append('no critic REV entry with **Gate:** passed in .claude/research/discussion.md')
+    if not any(field_passed(block, 'Gate') for block in qa_blocks):
+        problems.append('no QA entry with **Gate:** passed in .claude/research/discussion.md')
 
     if problems:
         print(
             'GATE BLOCKED - experiment launch stopped by the mechanical gate '
             '(.claude/hooks/experiment_gate.py):\n  - ' + '\n  - '.join(problems) +
-            '\nResolve the items above, or record a bypass ADR in discussion.md '
+            '\nResolve the items above, or record a bypass ADR in .claude/research/discussion.md '
             '(rule skipped, reason, rollback plan) and re-run the command with '
             'GATE_OVERRIDE=ADR-NNN prefixed.',
             file=sys.stderr,

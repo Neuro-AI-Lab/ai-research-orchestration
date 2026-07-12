@@ -1,0 +1,13 @@
+{
+  "_comment": "Copy to .codex/settings.local.json. This ignored file is used only by the Codex backend.",
+  "env": {
+    "LIT_CONTACT_EMAIL": "",
+    "S2_API_KEY": "",
+    "ZOTERO_API_KEY": "",
+    "ZOTERO_USER_ID": "",
+    "ZOTERO_GROUP_ID": "",
+    "ZOTERO_LOCAL": "",
+    "OVERLEAF_GIT_TOKEN": "",
+    "GITHUB_TOKEN": ""
+  }
+}

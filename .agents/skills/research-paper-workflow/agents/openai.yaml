@@ -1,0 +1,4 @@
+interface:
+  display_name: "Research Paper Workflow"
+  short_description: "Evidence-grounded drafting and review pipeline"
+  default_prompt: "Use $research-paper-workflow to plan a traceable paper drafting and review cycle."

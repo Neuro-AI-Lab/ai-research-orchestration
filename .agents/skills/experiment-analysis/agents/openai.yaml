@@ -1,0 +1,4 @@
+interface:
+  display_name: "Experiment Analysis"
+  short_description: "Rigorous statistical experiment interpretation"
+  default_prompt: "Use $experiment-analysis to analyze these experiment results and calibrate the claims."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Literature Evidence Review"
+  short_description: "Traceable primary-source literature synthesis"
+  default_prompt: "Use $literature-evidence-review to build a verified evidence map for this research question."

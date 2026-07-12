@@ -1,0 +1,103 @@
+[features]
+hooks = true
+multi_agent = true
+
+[agents]
+max_threads = 4
+# The root is the conductor-orchestrator; specialists cannot spawn another layer.
+max_depth = 1
+interrupt_message = true
+
+[agents.brainstorm]
+description = "Literature and hypothesis specialist; use for research ideas and method design."
+config_file = "fleets/quality/brainstorm.toml"
+
+[agents.data]
+description = "Dataset, split, EDA, and leakage-audit specialist."
+config_file = "fleets/quality/data.toml"
+
+[agents.critic]
+description = "Adversarial research-validity reviewer and mandatory plan/result gate."
+config_file = "fleets/quality/critic.toml"
+
+[agents.developer]
+description = "Implementation specialist for models, evaluation code, and experiment entrypoints."
+config_file = "fleets/quality/developer.toml"
+
+[agents.qa]
+description = "Correctness, regression, and data-leakage verification specialist."
+config_file = "fleets/quality/qa.toml"
+
+[agents.experiment-tracker]
+description = "Reproducible experiment execution, monitoring, and result-record specialist."
+config_file = "fleets/quality/experiment-tracker.toml"
+
+[agents.filemanager]
+description = "Repository, environment, git, and version-archive specialist."
+config_file = "fleets/quality/filemanager.toml"
+
+[agents.writer]
+description = "Grounded research prose, reports, README, and paper-writing specialist."
+config_file = "fleets/quality/writer.toml"
+
+[mcp_servers.literature]
+command = "python3"
+args = [".codex/scripts/literature_mcp.py"]
+
+[mcp_servers.zotero]
+command = "python3"
+args = [".codex/scripts/zotero_mcp.py", "serve"]
+
+[[hooks.SessionStart]]
+matcher = "startup|resume|compact"
+[[hooks.SessionStart.hooks]]
+type = "command"
+command = 'python3 "$(git rev-parse --show-toplevel)/.codex/hooks/session_brief.py"'
+timeout = 30
+statusMessage = "Loading Codex research state"
+[[hooks.SessionStart.hooks]]
+type = "command"
+command = 'python3 "$(git rev-parse --show-toplevel)/.codex/hooks/audit_event.py"'
+timeout = 30
+statusMessage = "Starting Codex audit ledger"
+
+[[hooks.SubagentStart]]
+matcher = ".*"
+[[hooks.SubagentStart.hooks]]
+type = "command"
+command = 'python3 "$(git rev-parse --show-toplevel)/.codex/hooks/session_brief.py"'
+timeout = 30
+statusMessage = "Briefing research agent"
+[[hooks.SubagentStart.hooks]]
+type = "command"
+command = 'python3 "$(git rev-parse --show-toplevel)/.codex/hooks/audit_event.py"'
+timeout = 30
+statusMessage = "Binding native agent identity"
+
+[[hooks.PreToolUse]]
+matcher = "^Bash$"
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = 'python3 "$(git rev-parse --show-toplevel)/.codex/hooks/experiment_gate.py"'
+timeout = 30
+statusMessage = "Checking research gates"
+
+[[hooks.SubagentStop]]
+matcher = ".*"
+[[hooks.SubagentStop.hooks]]
+type = "command"
+command = 'python3 "$(git rev-parse --show-toplevel)/.codex/hooks/result_contract_gate.py"'
+timeout = 30
+statusMessage = "Validating specialist result"
+[[hooks.SubagentStop.hooks]]
+type = "command"
+command = 'python3 "$(git rev-parse --show-toplevel)/.codex/hooks/audit_event.py"'
+timeout = 30
+statusMessage = "Recording native specialist result"
+
+[[hooks.Stop]]
+[[hooks.Stop.hooks]]
+type = "command"
+command = 'python3 "$(git rev-parse --show-toplevel)/.codex/hooks/session_close_gate.py"'
+timeout = 30
+statusMessage = "Checking session handoff"

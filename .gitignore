@@ -1,8 +1,10 @@
 # All data (raw, processed, splits)
 /data/
 
-# Model outputs and experiment artifacts
+# Generated research artifacts and private reading notes
 /experiments/
+/analysis/
+/papers/notes/
 
 # Environment
 *.pyc
@@ -34,21 +36,56 @@ Thumbs.db
 wandb/
 runs/
 
+# personal orchestration launcher preferences
+/.orchestration/config.local.json
+/.orchestration/runs/
+
 # personal settings (contains Overleaf token) and Overleaf clones (nested git repos)
 .claude/settings.local.json
+.codex/settings.local.json
 docs/paper*/
 
 # personal session hand-off (agent state) — live file is per-user; ship the .example instead
 .claude/state/handoff.json
+.codex/state/handoff.json
+.codex/runs/
+.codex/cache/
+.claude/runs/
 
-# Third-party reference material — not redistributed (system-prompt collections used as design
-# sources; provenance documented in .claude/prompts/README.md)
+# provider-owned live research state and role memory are personal work and never ship;
+# the distribution carries clean seeds in the providers' templates dirs (created by init)
+.claude/research/
+.claude/agent-memory/
+.codex/research/
+.codex/memory/
+
+# Maintainer-only development, evaluation, and validation history. The release ships
+# reusable checks, never transcripts, benchmark workspaces, bug diaries, or result reports.
+.claude/ROADMAP.md
+/.claude/prompts/orchestration-evals.md
+/.orchestration/evals/
+/.orchestration/reports/
+/evaluation/orchestration/
+/tests/repro/
+/docs/internal/
+/docs/validation/
+/docs/orchestration-benchmark.md
+/examples/toy-sentiment/EXAMPLE_ENTRIES.md
+/examples/toy-sentiment/sample_output.txt
+
+# Third-party reference material — not redistributed
 /ai-systemprompts-reference/
 /system_prompts_reference/
 /reference_source/
 
-# Third-party paper PDFs (copyright) — your own reading notes in papers/notes/ ARE tracked
+# Third-party paper PDFs are not redistributed; private notes are ignored above
 papers/*.pdf
 /usability_local_test/
-/tests/
 .pytest_cache/
+
+# Local-only scratch work. Research tests under /tests are intentionally tracked.
+/scratch/
+/.local/
+
+# maintainer validation rubric and internal eval material — local only (release_check INTERNAL_FILES)
+.claude/prompts/orchestration-evals.md

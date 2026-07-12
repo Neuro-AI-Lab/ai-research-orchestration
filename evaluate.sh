@@ -1,29 +1,9 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
-# Usage: ./run_eval.sh <task> <dataset>
-# Example: ./run_eval.sh ds mimic
-
-TASK=$1
-DATASET=$2
-
-if [[ -z "$TASK" || -z "$DATASET" ]]; then
-  exit 1
-fi
-
-if [[ "$DATASET" == "ehrshot" ]]; then
-  python evaluation/evaluate_ehrshot.py --task "$TASK"
-elif [[ "$DATASET" == "mimic" ]]; then
-  case "$TASK" in
-    ds)
-      python evaluation/evaluate_ds.py
-      ;;
-    ap)
-      python evaluation/evaluate_ap.py
-      ;;
-    *)
-      exit 1
-      ;;
-  esac
-else
-  exit 1
-fi
+cat >&2 <<'EOF'
+evaluate.sh is a project-owned evaluation entrypoint and has not been implemented yet.
+Ask the developer agent to implement metrics for an accepted HYP/DATASET plan,
+then have QA verify metric direction, split boundaries, and artifact provenance.
+EOF
+exit 2

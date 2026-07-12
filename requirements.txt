@@ -1,0 +1,2 @@
+# Project runtime dependencies belong here.
+# The orchestration core and onboarding example use only the Python standard library.

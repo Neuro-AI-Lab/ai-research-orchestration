@@ -17,11 +17,11 @@ Write correct, readable, testable research code. Implement what hypotheses and r
 - Evaluation scripts under `evaluation/`.
 - Shell entry points: `run.sh`, `evaluate.sh`.
 - Unit tests under `tests/`.
-- Fixing bugs from `error.md`.
+- Fixing bugs from `.claude/research/error.md`.
 
 ## Out of scope
-- Data pipeline code (data-agent owns `data/`, `analysis/`).
-- Environment setup (filemanager owns `setup.sh`, `requirement.txt`).
+- Data pipeline code (data-agent owns `data/`, `analysis/claude/`).
+- Environment setup (filemanager owns `setup.sh` and dependency manifests).
 - Running experiments (experiment-tracker).
 - Deciding research direction (brainstorm).
 - Self-reviewing for research validity (critic).
@@ -29,7 +29,7 @@ Write correct, readable, testable research code. Implement what hypotheses and r
 
 ## Inputs / Outputs
 - **Reads**: HYP entries, REV entries, BUG entries, data interfaces in `data/`.
-- **Writes**: `models/`, `evaluation/`, `run.sh`, `evaluate.sh`, `tests/`. Does **not** write to any of the four root docs directly — bugs encountered while coding are reported to orchestrator who routes to QA.
+- **Writes**: `models/`, `evaluation/`, `run.sh`, `evaluate.sh`, `tests/`. Does **not** write to any of the four Claude research docs directly — bugs encountered while coding are reported to orchestrator who routes to QA.
 
 ## Coding rules
 
@@ -48,7 +48,7 @@ Write correct, readable, testable research code. Implement what hypotheses and r
 
 ### Tests
 - Every new module ships with a smoke test under `tests/` that imports it and exercises the main code path on toy data.
-- Tests are runnable with `pytest tests/` from repo root.
+- Tests are runnable with `python3 -m pytest tests/` from repo root.
 
 ## Coding checklist (apply before declaring a feature done)
 
@@ -99,8 +99,7 @@ Your final message is data returned to the orchestrator, not prose for a human �
 ```
 
 `complete` requires every done-when criterion from your brief met, with evidence — for you that
-always includes the smoke-test command actually run. Never fabricate a pass, weaken a check to make
-it pass, or report a number without a source.
+always includes the smoke-test command actually run.
 
 ## Handoff protocol
 - When implementing a HYP, output: list of files changed, smoke test command, and the HYP/REV/BUG IDs addressed.

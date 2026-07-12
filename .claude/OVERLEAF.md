@@ -11,7 +11,7 @@ does the compiling.
    (`olp_...`). Git integration is an Overleaf premium feature (institutional licenses usually
    include it).
 2. Copy `.claude/settings.local.json.example` to `.claude/settings.local.json` and paste your
-   token into `OVERLEAF_GIT_TOKEN`. That file is gitignored (as are `docs/paper*/` clones) —
+   token into `OVERLEAF_GIT_TOKEN`. That file is gitignored (as are `docs/paper-claude*/` clones) —
    never commit a real token.
 3. Optional sanity check that the token authenticates (any fake project id works; "no git
    access / project does not exist" means auth passed, "Authentication failed" means bad token):
@@ -23,19 +23,19 @@ Security notes:
 - Rotate the token any time at Overleaf → Account Settings → Git Integration; then update
   `.claude/settings.local.json` — nothing else references it (clones embed it in their remote URL,
   so re-clone or `git remote set-url` after a rotation).
-- Never put the token in `settings.json`, agent specs, or root docs (those are checked in).
+- Never put the token in `settings.json`, agent specs, or Claude research docs (those are checked in).
 
 ## Linking a work project (repeat per paper/project)
 
 1. Open the project on Overleaf; copy its ID from the URL:
    `https://www.overleaf.com/project/`**`<project-id>`**
-2. Clone it (pick a name for multi-project setups; the default dir is `docs/paper`):
+2. Clone it (pick a name for multi-project setups; the default dir is `docs/paper-claude`):
 
    ```bash
-   .claude/scripts/overleaf_sync.sh clone <project-id> docs/paper-<short-name>
+   .claude/scripts/overleaf_sync.sh clone <project-id> docs/paper-claude-<short-name>
    ```
 
-3. Verify: `.claude/scripts/overleaf_sync.sh status docs/paper-<short-name>` — remote shows
+3. Verify: `.claude/scripts/overleaf_sync.sh status docs/paper-claude-<short-name>` — remote shows
    `https://***@git.overleaf.com/<project-id>` (token masked) and a clean tree.
 4. Tell the orchestrator which HYP/EXP scope this paper covers; the `writer` agent takes it from
    there (pull-first → edit with `% source: EXP-NNN` provenance comments → push with doc-ID
@@ -45,9 +45,9 @@ Security notes:
 
 | Action | Command |
 |:--|:--|
-| Get latest (incl. your web edits) | `.claude/scripts/overleaf_sync.sh pull docs/paper-<name>` |
-| Push agent edits | `.claude/scripts/overleaf_sync.sh push docs/paper-<name> "writer: results (EXP-003)"` |
-| Check state | `.claude/scripts/overleaf_sync.sh status docs/paper-<name>` |
+| Get latest (incl. your web edits) | `.claude/scripts/overleaf_sync.sh pull docs/paper-claude-<name>` |
+| Push agent edits | `.claude/scripts/overleaf_sync.sh push docs/paper-claude-<name> "writer: results (EXP-003)"` |
+| Check state | `.claude/scripts/overleaf_sync.sh status docs/paper-claude-<name>` |
 
 Push safety is built in: refuses staged `data/`/secret-looking paths and >50MB files, integrates
 concurrent Overleaf edits before pushing, masks the token in all output.

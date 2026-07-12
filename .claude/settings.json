@@ -51,6 +51,16 @@
         ]
       }
     ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/result_contract_gate.py\""
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

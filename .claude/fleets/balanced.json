@@ -1,0 +1,16 @@
+{
+  "preset": "balanced",
+  "description": "Lead untouched; the two highest-effort non-gate knobs come down one notch (critic max->xhigh, brainstorm high->medium). Gate floors hold.",
+  "roles": {
+    "orchestrator": {"model": "fable", "effort": "xhigh"},
+    "orchestrator-opus": {"model": "opus", "effort": "xhigh"},
+    "brainstorm": {"model": "sonnet", "effort": "medium"},
+    "data": {"model": "sonnet", "effort": "medium"},
+    "critic": {"model": "sonnet", "effort": "xhigh"},
+    "developer": {"model": "sonnet", "effort": "medium"},
+    "qa": {"model": "sonnet", "effort": "high"},
+    "experiment-tracker": {"model": "sonnet", "effort": "low"},
+    "filemanager": {"model": "sonnet", "effort": "low"},
+    "writer": {"model": "sonnet", "effort": "medium"}
+  }
+}

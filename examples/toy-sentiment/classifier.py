@@ -91,13 +91,8 @@ class NaiveBayesClassifier:
         self._unseen_log_likelihood: Dict[str, float] = {}
         for c in self.classes:
             denom = total_words_per_class[c] + self.alpha * vocab_size
-            # NOTE: previously used defaultdict(lambda: math.log(self.alpha / denom)),
-            # which is a late-binding closure bug -- all per-class factories captured
-            # the same free variable `denom`, so by score-time every class's
-            # "unseen word" fallback silently used the LAST class's denominator
-            # instead of its own. Fixed by storing the per-class fallback value
-            # explicitly (self._unseen_log_likelihood[c]) instead of relying on a
-            # closure over a loop variable.
+            # Store each class's unseen-token fallback explicitly so its denominator
+            # cannot be captured from another loop iteration.
             self._unseen_log_likelihood[c] = math.log(self.alpha / denom)
             likelihoods: Dict[str, float] = {}
             for word, count in word_counts_per_class[c].items():

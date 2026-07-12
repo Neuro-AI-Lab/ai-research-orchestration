@@ -87,5 +87,3 @@ papers/*.pdf
 /scratch/
 /.local/
 
-# maintainer validation rubric and internal eval material — local only (release_check INTERNAL_FILES)
-.claude/prompts/orchestration-evals.md

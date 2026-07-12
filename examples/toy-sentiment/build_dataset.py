@@ -6,7 +6,7 @@ generic sentiment corpus (film/tech/food/travel/retail review style, no real
 people or personal content). Split is stratified by label with a fixed
 random seed so the result is fully deterministic and reproducible.
 
-LEARNABILITY DESIGN (this is the point of this revision): every sentence is
+LEARNABILITY DESIGN: every sentence is
 built around one or more words from a small, fixed, shared sentiment
 vocabulary (SENTIMENT_VOCAB below). Each vocab word is reused across at
 least 3 different sentences, spanning different topics and sentence
@@ -15,10 +15,8 @@ from and a stratified 70/30 split leaves each word well represented in
 train regardless of which sentences land in test. This is intentional
 vocabulary sharing across splits, not leakage -- see DATASET_NOTES.md.
 
-Sentences are NOT built as opposite-label templates that differ by a single
-swapped word (that was the bug in the previous revision: a discriminative
-adjective could be out-of-vocabulary for train). Positive and negative
-sentences are written independently with varied structure and phrasing.
+Positive and negative sentences are written independently with varied
+structure and phrasing rather than as swapped-word templates.
 
 Usage:
     python3 build_dataset.py
@@ -47,14 +45,8 @@ NEGATIVE_VOCAB = [
 # Each sentence below is built around TWO words from the class vocabulary
 # (a "shift" combinatorial design over the 10-word vocab so every word
 # occurs in exactly 6 of the 30 sentences per class). Using two vocab words
-# per sentence instead of one roughly doubles the aggregate log-likelihood
-# signal available to the bag-of-words model relative to incidental
-# stopword/topic-noun noise, which is what made the single-word-per-sentence
-# version of this corpus classify at only ~0.67 test accuracy despite
-# passing the leakage/learnability checks -- learnability (word is
-# in-vocabulary) is necessary but not sufficient; the word also needs
-# enough repeated evidence to outweigh sentence-to-sentence noise in a
-# tiny corpus.
+# per sentence supplies repeated class signal relative to incidental
+# stopword/topic-noun noise in this deliberately tiny corpus.
 POSITIVE = [
     "I love how great this coffee shop treats its regulars every morning.",
     "I love this store's excellent selection of hiking gear.",

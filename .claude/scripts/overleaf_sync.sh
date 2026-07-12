@@ -7,7 +7,7 @@
 #   export OVERLEAF_HOST=git.overleaf.com      # optional (default)
 #
 # Usage:
-#   .claude/scripts/overleaf_sync.sh clone <project-id-or-url> [dir]   # default dir: docs/paper
+#   .claude/scripts/overleaf_sync.sh clone <project-id-or-url> [dir]   # default: docs/paper-claude
 #   .claude/scripts/overleaf_sync.sh pull   [dir]
 #   .claude/scripts/overleaf_sync.sh push   [dir] ["commit message"]
 #   .claude/scripts/overleaf_sync.sh status [dir]
@@ -38,7 +38,7 @@ guard_push() { # refuse to push data/secrets to Overleaf
 case "$CMD" in
   clone)
     SRC="${2:?project id or URL required}"
-    DIR="${3:-docs/paper}"
+    DIR="${3:-docs/paper-claude}"
     [ -e "$DIR/.git" ] && die "$DIR already contains a git repo"
     if [[ "$SRC" == *"://"* || -d "$SRC" ]]; then
       URL="$SRC"   # full URL or local path (used by the mechanics test)
@@ -50,12 +50,12 @@ case "$CMD" in
     echo "cloned into $DIR"
     ;;
   pull)
-    DIR="${2:-docs/paper}"
+    DIR="${2:-docs/paper-claude}"
     BR=$(git -C "$DIR" symbolic-ref --short HEAD) || die "cannot determine branch"
     git -C "$DIR" pull --no-rebase origin "$BR" 2>&1 | mask || die "pull failed"
     ;;
   push)
-    DIR="${2:-docs/paper}"
+    DIR="${2:-docs/paper-claude}"
     MSG="${3:-writer: update $(date +%F)}"
     cd "$DIR" || die "no such dir: $DIR"
     BR=$(git symbolic-ref --short HEAD) || die "cannot determine branch"
@@ -72,7 +72,7 @@ case "$CMD" in
     echo "pushed: $MSG"
     ;;
   status)
-    DIR="${2:-docs/paper}"
+    DIR="${2:-docs/paper-claude}"
     git -C "$DIR" remote -v | mask
     git -C "$DIR" status -sb
     ;;

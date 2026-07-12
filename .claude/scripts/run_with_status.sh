@@ -2,9 +2,9 @@
 # Launch an experiment command with status tracking and a heartbeat.
 #
 # Usage:  .claude/scripts/run_with_status.sh EXP-NNN -- <command...>
-# Writes: ${EXPERIMENTS_DIR:-experiments}/EXP-NNN/status.json  (state machine:
+# Writes: ${EXPERIMENTS_DIR:-experiments/claude}/EXP-NNN/status.json  (state machine:
 #         launched -> running -> completed|failed, with pid/heartbeat/exit_code)
-#         ${EXPERIMENTS_DIR:-experiments}/EXP-NNN/run.log      (all output, appended)
+#         ${EXPERIMENTS_DIR:-experiments/claude}/EXP-NNN/run.log      (all output, appended)
 #
 # Invoke inside a backgrounded Bash call. The command itself runs under setsid,
 # so it survives if the launching session dies; in that case status.json is left
@@ -17,7 +17,7 @@ shift
 [ "${1:-}" = "--" ] && shift
 [ "$#" -ge 1 ] || { echo "run_with_status.sh: no command given" >&2; exit 64; }
 
-RUN_DIR="${EXPERIMENTS_DIR:-experiments}/$EXP_ID"
+RUN_DIR="${EXPERIMENTS_DIR:-experiments/claude}/$EXP_ID"
 mkdir -p "$RUN_DIR"
 STATUS="$RUN_DIR/status.json"
 LOG="$RUN_DIR/run.log"

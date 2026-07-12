@@ -1,0 +1,6 @@
+{
+  "backend": "codex",
+  "preset": "quality",
+  "permissions": "safe",
+  "role_overrides": {}
+}

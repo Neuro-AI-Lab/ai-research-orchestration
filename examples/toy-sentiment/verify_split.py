@@ -14,11 +14,8 @@ Checks, printed as evidence:
   6. SHA256 content hash of each split file, for the dataset card.
   7. LEARNABILITY check: every fixed-vocabulary sentiment word that appears
      in a test sentence of a given class also appears in at least one train
-     sentence of that same class. This is the fix for the previous
-     revision's bug (discriminative word out-of-vocabulary for train). Note
-     this checks the fixed shared vocabulary, by design reused across both
-     splits -- that sharing is intentional, not leakage (see
-     DATASET_NOTES.md "Known leakage risks").
+     sentence of that same class. Shared vocabulary is intentional; records
+     remain disjoint (see DATASET_NOTES.md).
 
 Usage:
     python3 verify_split.py

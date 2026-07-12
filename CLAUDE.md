@@ -4,24 +4,36 @@ Reusable research project template with a team of specialist AI subagents. Desig
 
 ## How this project works
 
-The main Claude session is the **conductor** — a dispatcher, not a doer. On any non-trivial request, it invokes the **orchestrator** subagent, which then routes work to specialists. The main session does not write code, run experiments, or generate research artifacts directly.
+The main Claude session is the **orchestrator** — it plans, routes work to specialist subagents,
+enforces the quality gates, and reports to the user. Use direct topology by default: the main
+session orchestrates specialists itself and does not add a dedicated orchestrator hop merely
+because a task is non-trivial (each hop costs a full lead-model context and a user-clarification
+round trip). The main session still does not write code, run experiments, or generate research
+artifacts directly — every artifact comes from a specialist dispatch.
 
 ### The agent team
 
 | Tier | Agent | Model | Effort | Owns (this repo) |
 |---|---|---|---|---|
-| 1 — Coordination | `orchestrator` | `fable` | `xhigh` | Routing, planning, ADRs, gates, talks to the user |
+| 1 — Coordination | `orchestrator` | `fable` | `xhigh` | Dedicated-orchestrator option (isolation); same charter the main session runs directly |
 | 1 — Coordination | `orchestrator-opus` | `opus` | `xhigh` | Fallback twin of `orchestrator` (Fable 5 backport prompt) |
 | 2 — Research | `brainstorm` | `sonnet` | `high` | Hypotheses, literature, method design, `papers/` |
-| 2 — Research | `data` | `sonnet` | `medium` | `data/`, `analysis/` |
+| 2 — Research | `data` | `sonnet` | `medium` | `data/`, `analysis/claude/` |
 | 2 — Research | `critic` | `sonnet` | `max` | Adversarial review of validity |
 | 3 — Build | `developer` | `sonnet` | `medium` | `models/`, `evaluation/`, `run.sh`, `evaluate.sh`, `tests/` |
 | 3 — Verify | `qa` | `sonnet` | `high` | `tests/`, bug isolation, gates code before experiments |
-| 4 — Ops | `experiment-tracker` | `sonnet` | `low` | `experiments/` (per-run dirs) |
-| 4 — Ops | `filemanager` | `sonnet` | `low` | Repo structure, git, env, `setup.sh`, `requirement.txt` |
+| 4 — Ops | `experiment-tracker` | `sonnet` | `low` | `experiments/claude/` (per-run dirs) |
+| 4 — Ops | `filemanager` | `sonnet` | `low` | Repo structure, git, env, `setup.sh`, dependency files |
 | 4 — Ops | `writer` | `sonnet` | `medium` | `docs/`, human-facing prose, README |
 
 Each agent's full spec is in `.claude/agents/<name>.md`. Read the relevant one before invoking.
+
+The Model/Effort columns show the default `quality` fleet (authoritative source:
+`.claude/fleets/quality.json`, which must match the frontmatter pins — drift is test-enforced).
+Cheaper fleets are selectable per session: `./orchestrate claude --preset balanced|fast`, with
+per-role overrides `--role ROLE=PRESET|MODEL@EFFORT`. The launcher enforces research-gate floors
+(critic/qa at least sonnet@high, data at least sonnet@medium, lead model fable or opus) so no
+preset weakens verification — see `.claude/fleets/README.md`.
 
 ### Model tiering policy
 
@@ -47,24 +59,28 @@ the agent is invoked and by how much of its discipline is already carried by a m
 checklist. Available effort levels depend on the underlying model and are not exhaustively
 documented per model, so a pinned level is a request the harness may adapt, not a guarantee.
 
-### Conductor protocol (main session)
+### Orchestration protocol (main session)
 
-The conductor classifies each request (trivial lookup → answer from the docs; anything else →
-dispatch to the orchestrator, passing the user's request with its critical phrasing verbatim),
-relays orchestrator output faithfully, and never does specialist work itself. **When the main
-session runs on Opus 4.8** (Fable 5 unavailable), read
-`.claude/prompts/orchestrator-core-opus48.md` Part I at session start and apply the transplanted
-behavioral layer to your own conduct — closing message carries everything, lead with the outcome,
-operate autonomously without permission-asking, never end a turn on an unfulfilled promise, report
-outcomes faithfully — and dispatch to `orchestrator-opus` instead of `orchestrator`.
+The main session runs the orchestrator charter directly — single hop. Classify each request
+(trivial lookup → answer from the docs; anything else → plan, dispatch specialists with full
+BRIEFs, enforce gates, synthesize), applying the `multiagent-orchestration` skill and the
+orchestrator core discipline: on Fable 5 read `.claude/prompts/orchestrator-core-fable5.md`; **when
+the main session runs on Opus 4.8** (Fable 5 unavailable), read
+`.claude/prompts/orchestrator-core-opus48.md` and run its Gate 0–8 sequence on every request. Read
+`.claude/agent-memory/orchestrator/MEMORY.md` at session start; append durable routing lessons.
+
+Spawn the dedicated `orchestrator` subagent (or `orchestrator-opus` on Opus 4.8 — never both on one
+request) only when isolation is worth a full extra lead-model context: the user explicitly asks for
+it, or the main-session context is too long or polluted to orchestrate reliably. In that case pass
+the user's request with its critical phrasing verbatim and relay the output faithfully.
 
 ### Skills
 
-Reusable research disciplines in `.claude/skills/<name>/SKILL.md`. Agents load their assigned skills at session start and apply them as mandatory checklists and procedures. Skills are listed in each agent's frontmatter (`skills:` field).
+Reusable research disciplines in `.claude/skills/<name>/SKILL.md`. Skills listed in an agent's frontmatter (`skills:` field) arrive preloaded in the agent's context at spawn — no Read needed — and apply as mandatory checklists and procedures.
 
 | Skill | Purpose | Agent(s) |
 |---|---|---|
-| `version-management` | Four-document lifecycle: result.md/discussion.md/error.md (current version) + version.md (archive). Archive before reset. User prompt is highest priority. | All agents except `developer` |
+| `version-management` | Four-document lifecycle: .claude/research/result.md/discussion.md/error.md (current version) + .claude/research/version.md (archive). Archive before reset. User prompt is highest priority. | All agents except `developer` |
 | `multiagent-orchestration` | Orchestrator-worker playbook: fleet sizing, BRIEF/RESULT/HANDOFF contracts, parallel-reads/serial-writes, failure ladders | `orchestrator`, `orchestrator-opus` |
 | `specialist-core` | Sonnet 5 uplift core: deliberate thinking, bias to act, verify-before-done, faithful condensed reporting, trust boundary | All 8 specialists |
 | `hypothesis-design` | Falsifiable hypothesis formulation with quality checklist | `brainstorm` |
@@ -73,13 +89,13 @@ Reusable research disciplines in `.claude/skills/<name>/SKILL.md`. Agents load t
 | `experiment-reproducibility` | Pre-run checklist, metadata capture, reproducibility hygiene | `experiment-tracker`, `developer` |
 | `grounded-research-writing` | Grounded prose with traceable claims and honest hedging | `writer` |
 
-**Skill loading rule:** When an agent has a `skills:` field in its frontmatter, it must read each listed skill file at session start and apply the skill's procedures as mandatory discipline. The skill's checklist is authoritative when it differs from the agent spec's abbreviated version.
+**Skill loading rule:** Skills in an agent's `skills:` frontmatter arrive preloaded — do not re-read them; that is a wasted tool call. Apply each preloaded skill's procedures as mandatory discipline. The skill text is authoritative when it differs from the agent spec's abbreviated version.
 
 ### Session continuity (two layers)
 
 Continuity across sessions is automatic and two-layered:
 
-- **Human monitoring layer (markdown):** the four root docs. STATE / REPORT / BUG / VAL / EXP
+- **Human monitoring layer (markdown):** the four Claude research docs. STATE / REPORT / BUG / VAL / EXP
   entries are the readable record; the orchestrator appends a `STATE-YYYY-MM-DD` entry when
   research state changes in a session.
 - **Agent collaboration layer (structured):** `.claude/state/handoff.json` — dense machine-readable
@@ -88,18 +104,18 @@ Continuity across sessions is automatic and two-layered:
 
 Enforcement: a `SessionStart` hook (`session_brief.py`) injects the hand-off, open gates, the last
 STATE entry, and running/orphaned experiment runs into every new session's context; a `Stop` hook
-(`session_close_gate.py`) blocks the first stop attempt if root docs changed after handoff.json
+(`session_close_gate.py`) blocks the first stop attempt if Claude research docs changed after handoff.json
 was last updated, with instructions to update the hand-off (and STATE entry via orchestrator).
 Keep handoff.json dense — the next session reads it cold.
 
 ### Routing rules (memorize these)
 
-1. **User <> orchestrator only.** No subagent talks to the user. The main session reports orchestrator output to the user verbatim or summarized.
-2. **No specialist-to-specialist calls.** All cross-agent coordination goes through orchestrator.
+1. **User <> orchestrator (= main session) only.** No subagent talks to the user. When a dedicated orchestrator subagent is used, the main session relays its output verbatim or summarized.
+2. **No specialist-to-specialist calls.** All cross-agent coordination goes through the orchestrator (the main session, or the dedicated subagent when spawned).
 3. **Mandatory gates** before any experiment runs:
-   - `critic` has reviewed the plan (no blocking REV open).
-   - `qa` has verified the code commit (no critical BUG open).
-   - `data` has documented the split (DATASET entry exists with leakage checklist passed).
+   - `critic` has reviewed the plan (a REV records `**Gate:** passed`; no blocking REV open).
+   - `qa` has verified the code commit (a QA entry records `**Gate:** passed`; no critical BUG open).
+   - `data` has documented the split (a DATASET entry records `**Leakage audit:** passed`).
    These gates are also enforced mechanically: a `PreToolUse` hook
    (`.claude/hooks/experiment_gate.py`) blocks experiment launch commands
    (`run.sh`, `evaluate.sh`, `python models/*.py`) while any gate is unmet.
@@ -107,23 +123,23 @@ Keep handoff.json dense — the next session reads it cold.
 
 ## The four documents
 
-The project uses a **version-gated document system**. Three working docs (`result.md`, `discussion.md`, `error.md`) contain only the **current version's** content. One archive doc (`version.md`) accumulates the full project history.
+The project uses a **version-gated document system**. Three working docs (`.claude/research/result.md`, `.claude/research/discussion.md`, `.claude/research/error.md`) contain only the **current version's** content. One archive doc (`.claude/research/version.md`) accumulates the full project history.
 
 | File | Scope | Purpose | Entry types |
 |---|---|---|---|
-| `result.md` | **Current version only** | Experiment results and narrative summaries | `EXP-NNN`, `REPORT-YYYY-MM-DD` |
-| `discussion.md` | **Current version only** | Hypotheses, reviews, decisions, plans, state | `HYP-NNN`, `RES-NNN`, `DATASET-NNN`, `REV-NNN`, `ADR-NNN`, `PLAN-YYYY-WW`, `STATE-YYYY-MM-DD`, `REPORT-YYYY-WW` |
-| `error.md` | **Current version only** | Bugs and validity issues | `BUG-NNN` (qa), `VAL-NNN` (critic) |
-| `version.md` | **Cumulative archive** | Version history, archived summaries, dependency snapshots | `VER-NNN`, `CLEAN-YYYY-MM-DD` |
+| `.claude/research/result.md` | **Current version only** | Experiment results and narrative summaries | `EXP-NNN`, `REPORT-YYYY-MM-DD` |
+| `.claude/research/discussion.md` | **Current version only** | Hypotheses, reviews, QA attestations, decisions, plans, state | `HYP-NNN`, `RES-NNN`, `DATASET-NNN`, `REV-NNN`, `QA-NNN`, `ADR-NNN`, `PLAN-YYYY-WW`, `STATE-YYYY-MM-DD`, `REPORT-YYYY-WW` |
+| `.claude/research/error.md` | **Current version only** | Bugs and validity issues | `BUG-NNN` (qa), `VAL-NNN` (critic) |
+| `.claude/research/version.md` | **Cumulative archive** | Version history, archived summaries, dependency snapshots | `VER-NNN`, `CLEAN-YYYY-MM-DD` |
 
 ### Version lifecycle
 
 ```
 [Working phase]                    [Version transition]                [New version]
-result.md     ─── current work ──► archived into VER-NNN ──────────► cleared (fresh)
-discussion.md ─── current work ──► archived into VER-NNN ──────────► cleared (fresh)
-error.md      ─── current work ──► critical/open items in VER-NNN ─► cleared (fresh)
-version.md    ─── cumulative   ──► receives VER-NNN entry ─────────► keeps growing
+.claude/research/result.md     ─── current work ──► archived into VER-NNN ──────────► cleared (fresh)
+.claude/research/discussion.md ─── current work ──► archived into VER-NNN ──────────► cleared (fresh)
+.claude/research/error.md      ─── current work ──► critical/open items in VER-NNN ─► cleared (fresh)
+.claude/research/version.md    ─── cumulative   ──► receives VER-NNN entry ─────────► keeps growing
 ```
 
 **Version transitions** are triggered by:
@@ -138,14 +154,14 @@ The `orchestrator` initiates version transitions. The `filemanager` writes the `
 
 When a version transition is triggered:
 
-1. `writer` produces a **condensed version summary** covering result.md, discussion.md, and error.md. This summary includes:
+1. `writer` produces a **condensed version summary** covering .claude/research/result.md, .claude/research/discussion.md, and .claude/research/error.md. This summary includes:
    - Key results with headline numbers (from EXP/REPORT entries)
    - Open issues and their severity (from REV/BUG entries)
    - Decisions made (from ADR entries)
    - Hypotheses and their status (from HYP entries)
    - Dataset state (from DATASET entries)
-2. `filemanager` writes a `VER-NNN` entry to `version.md` containing the summary, environment snapshot, and linked entry IDs.
-3. `result.md`, `discussion.md`, and `error.md` are **reset** to their template headers with empty summary tables. Any **open** items (unresolved BUGs, open REVs, active HYPs, active DATASETs) are carried forward into the new version's docs with a `Carried from VER-NNN` annotation.
+2. `filemanager` writes a `VER-NNN` entry to `.claude/research/version.md` containing the summary, environment snapshot, and linked entry IDs.
+3. `.claude/research/result.md`, `.claude/research/discussion.md`, and `.claude/research/error.md` are **reset** to their template headers with empty summary tables. Any **open** items (unresolved BUGs, open REVs, active HYPs, active DATASETs) are carried forward into the new version's docs with a `Carried from VER-NNN` annotation.
 4. Entry ID counters continue incrementing globally (never reset). EXP-005 in VER-002 is followed by EXP-006 in VER-003.
 
 ### What agents read at session start
@@ -154,10 +170,13 @@ Every agent must read, in this priority order:
 
 1. **User prompt** -- the user's current request is the highest priority. Always.
 2. **CLAUDE.md** -- project rules and structure.
-3. **discussion.md** -- the latest version's active context (open reviews, active hypotheses, decisions).
+3. **.claude/research/discussion.md** -- summary tables always (open reviews, active hypotheses, decisions at a glance); full entries only for the doc IDs the BRIEF names or the write will touch. Do not read the whole file per dispatch.
 4. **Their own agent spec** (`.claude/agents/<name>.md`) -- their rules and assigned skills.
-5. **Assigned skills** (`.claude/skills/<name>/SKILL.md`) -- read each skill listed in the agent's `skills:` frontmatter. Apply as mandatory checklists.
-6. **version.md summary tables** -- for historical context when needed (not full entries unless investigating).
+5. **Assigned skills** -- already preloaded in context via the `skills:` frontmatter; do not re-read the files. Apply as mandatory checklists.
+6. **.claude/research/version.md summary tables** -- for historical context when needed (not full entries unless investigating).
+
+Subagents receive CLAUDE.md automatically in their injected context — items 1, 2,
+4, and 5 arrive without tool calls; only .claude/research/discussion.md (and .claude/research/version.md when needed) costs a Read.
 
 **User prompt overrides all inherited context.** If the user's request contradicts an existing plan or decision, follow the user. Document the deviation as an ADR if it affects research validity.
 
@@ -179,56 +198,12 @@ The `---` separator at the end is mandatory. Within a version, entries are appen
 
 ## Distribution discipline (maintainers)
 
-This template doubles as the maintainer's own personal research instance. That dual use caused a
-real leak: personal research entries were committed to `discussion.md` and `error.md` and merged
-into the distribution `main` (reverted in PRs #11/#2). ADR-003 is the fix — a **discipline**
-approach, not a technical one: the four root docs and `.claude/agent-memory/**` stay tracked (they
-are load-bearing for the version-management model and the `session_close_gate.py` hook), so the
-boundary is enforced by maintainer process, not by `.gitignore`.
-
-- **The four root docs are scaffolding, not content.** `result.md`, `discussion.md`, `error.md`,
-  `version.md` exist so a *downstream user* can run their own research inside this template. In
-  the distributed template they ship as clean, empty templates (header + empty summary tables
-  only) — never populated with a real project's `HYP`/`RES`/`DATASET`/`EXP`/`REV`/`REPORT`
-  entries.
-- **Personal research never reaches distribution `main`.** Any entry carrying real project
-  content — hypotheses, datasets, results, reviews tied to the maintainer's own work — belongs on
-  a private fork, a private instance, or local uncommitted working state. It must never be
-  committed to, or merged into, this repo's distribution `main`.
-- **`.claude/agent-memory/**` commits only generic, project-agnostic seed wisdom** (e.g., reusable
-  lessons about gate discipline, leakage checklists, review patterns). Personal or
-  project-specific lessons (real dataset names, real findings, real paper titles) stay local and
-  are never committed here.
-- **`handoff.json` is already gitignored** (ADR-002): `.claude/state/handoff.json` holds live
-  personal session state and stays local; only `.claude/state/handoff.json.example` (a clean
-  schema stub) is tracked. No further action needed here — noted for completeness.
-
-### Pre-distribution checklist (run before merging anything to distribution `main`)
-
-Before opening or merging a PR that touches the root docs or `.claude/agent-memory/**`, the
-maintainer runs:
-
-1. **Diff scope check** — inspect exactly what changed in the docs that can leak:
-   ```
-   git diff origin/main..HEAD -- discussion.md result.md error.md version.md .claude/agent-memory
-   ```
-2. **Personal-marker grep** — grep that diff for the maintainer's own running list of personal
-   project markers (real project codenames, real dataset names, real paper/journal titles, real
-   author names). Any hit blocks the merge until scrubbed:
-   ```
-   git diff origin/main..HEAD -- discussion.md result.md error.md version.md .claude/agent-memory \
-     | grep -iE 'YOUR-PROJECT-CODENAME|your-dataset-name|your-paper-title|your-name'
-   ```
-   (replace the pattern with the maintainer's actual personal-content marker list before running).
-3. **Empty-template check** — confirm `result.md`, `discussion.md`, `error.md` summary tables
-   contain no real entry rows (template placeholders only) if the distribution snapshot is meant
-   to be a fresh-start template.
-4. **agent-memory review** — read every changed `.claude/agent-memory/<role>/MEMORY.md` line by
-   line; confirm each lesson is generic and would make sense to a stranger's unrelated project.
-5. **Any hit at any step blocks the merge.** Scrub (rewrite the entry, drop the line, or move it
-   to a local-only doc) and re-run the checklist before merging.
-
-**Linked:** ADR-002, ADR-003.
+Maintainer process lives in `CONTRIBUTING.md` (kept out of this file so it is not injected into
+every agent context). The one rule every session must know: **personal research and development
+history never reach the distribution `main`.** Live state is gitignored structurally
+(`.claude/research/`, `.claude/agent-memory/`, `.claude/state/handoff.json`); the distribution
+ships only the clean seeds in `.claude/templates/`. Before merging any PR, run the
+pre-distribution checklist in `CONTRIBUTING.md`.
 
 ## Three universal concerns
 
@@ -255,9 +230,9 @@ If leakage is discovered mid-project, every experiment that used the leaky code 
 
 ### Document formatting standard (all agents must follow)
 
-All four root docs (`result.md`, `error.md`, `discussion.md`, `version.md`) are formatted as **readable reports**, not raw logs. Every agent that writes to a root doc must follow these rules:
+All four Claude research docs (`.claude/research/result.md`, `.claude/research/error.md`, `.claude/research/discussion.md`, `.claude/research/version.md`) are formatted as **readable reports**, not raw logs. Every agent that writes to a Claude research doc must follow these rules:
 
-1. **Summary tables at the top.** Each root doc has one or more summary tables (grouped by entry type) providing an at-a-glance overview. When you append a new entry, you must also add a row to the corresponding summary table.
+1. **Summary tables at the top.** Each Claude research doc has one or more summary tables (grouped by entry type) providing an at-a-glance overview. When you append a new entry, you must also add a row to the corresponding summary table.
 
 2. **Proper markdown tables.** All tabular data uses markdown pipe tables (`| col | col |`). Never use space-aligned pseudo-tables.
 
@@ -284,10 +259,10 @@ All four root docs (`result.md`, `error.md`, `discussion.md`, `version.md`) are 
 project/
 ├── CLAUDE.md                 # this file
 ├── README.md
-├── error.md                  # qa + critic
-├── result.md                 # experiment-tracker + writer
-├── discussion.md             # multi-writer (sectioned by entry prefix)
-├── version.md                # filemanager
+├── .claude/research/error.md                  # qa + critic
+├── .claude/research/result.md                 # experiment-tracker + writer
+├── .claude/research/discussion.md             # multi-writer (sectioned by entry prefix)
+├── .claude/research/version.md                # filemanager
 ├── .claude/agents/           # 10 subagent specs (2 orchestrator variants + 8 specialists)
 ├── .claude/skills/           # 8 skills (loaded by agents)
 ├── .claude/prompts/          # orchestrator cores (Fable 5 + Opus 4.8 backport), delegation contracts
@@ -298,18 +273,19 @@ project/
 ├── .claude/OVERLEAF.md       # per-project Overleaf linking guide (token: settings.local.json)
 ├── .claude/ZOTERO.md         # Zotero library integration guide (key: settings.local.json)
 ├── .mcp.json                 # MCP servers: literature (arXiv/OpenAlex/PubMed/S2) + zotero
-├── papers/                   # brainstorm + critic (reference PDFs; notes/ = per-paper reading notes, cross-version durable)
+├── papers/                   # references; notes/claude/ = durable Claude reading notes
 ├── data/                     # data: raw, processed, splits (gitignored)
 ├── models/                   # developer (model code + training scripts)
 ├── evaluation/               # developer (metrics + eval drivers)
-├── analysis/                 # data (EDA notebooks)
-├── experiments/              # experiment-tracker (per-run dirs, gitignored)
-├── tests/                    # developer + qa — local-only in this deployment (gitignored by owner decision); regression-test verification evidence lives in error.md
+├── analysis/claude/          # data (EDA notebooks)
+├── experiments/claude/       # experiment-tracker (per-run dirs, gitignored)
+├── tests/                    # developer + qa — local-only in this deployment (gitignored by owner decision); regression-test verification evidence lives in .claude/research/error.md
 ├── docs/                     # writer (reports, paper drafts)
 ├── run.sh                    # developer (training/inference entry)
 ├── evaluate.sh               # developer (eval entry)
 ├── setup.sh                  # filemanager (env setup)
-└── requirement.txt           # filemanager (Python dependencies)
+├── requirements.txt          # filemanager (project runtime dependencies)
+└── requirements-dev.txt      # filemanager (validation/development dependencies)
 ```
 
 ### Directory ownership map (write authority)
@@ -318,25 +294,31 @@ project/
 |---|---|---|
 | `papers/` | `brainstorm`, `critic` | Reference papers for literature grounding |
 | `data/` | `data` | Raw + processed data; gitignored |
-| `analysis/` | `data` | EDA notebooks; tracked in git |
+| `analysis/claude/` | `data` | EDA notebooks; tracked in git |
 | `models/` | `developer` | Model architecture, training, inference scripts |
 | `evaluation/` | `developer` | Metrics and eval drivers |
 | `tests/` | `developer` (new tests), `qa` (regression, repro) | |
-| `experiments/` | `experiment-tracker` | Per-run subdirs only |
+| `experiments/claude/` | `experiment-tracker` | Per-run subdirs only |
 | `docs/` | `writer` | Long-form deliverables |
 | `run.sh`, `evaluate.sh` | `developer` | Pipeline entry points |
-| `setup.sh`, `requirement.txt`, `.gitignore` | `filemanager` | Env and repo hygiene |
-| Four root `.md` docs | per the table above | |
+| `setup.sh`, `requirements*.txt`, `.gitignore` | `filemanager` | Env and repo hygiene |
+| `.claude/research/*.md` | per the research-state table above | Claude-owned live state only |
 
 ## How to invoke
 
 On any new request from the user, the main Claude session should:
 
-1. Read this file at session start.
-2. Decide if the request is trivial (single specialist, no gates needed) or non-trivial.
-3. For non-trivial requests: invoke `orchestrator` via the `Agent` tool. Pass the user's request as-is. If the `fable` model is unavailable or rate-limited, invoke `orchestrator-opus` instead — same charter on Opus 4.8 via the Fable 5 backport prompt. Never both on one request.
+1. Read this file at session start (injected automatically; do not re-read).
+2. Decide if the request is trivial (lookup, no gates) or non-trivial.
+3. For non-trivial requests: orchestrate directly — plan per the orchestrator core, dispatch the
+   right specialists via the `Agent` tool with full BRIEFs, enforce gates, synthesize. Spawn the
+   dedicated `orchestrator` subagent (or `orchestrator-opus` on Opus 4.8; never both on one
+   request) only under the isolation conditions in "Orchestration protocol", passing the user's
+   request as-is.
 4. For trivial follow-ups (e.g., "what does HYP-005 say?"): may read the doc directly and answer.
-5. Never write to any of the four root docs or to `models/`, `evaluation/`, `data/`, `tests/`, `experiments/`, `docs/` directly without going through the appropriate agent.
+5. The main session may write `.claude/research/discussion.md` orchestration entries (PLAN / ADR / STATE) as the
+   orchestrator; everything else — the other Claude research docs, `models/`, `evaluation/`, `data/`,
+   `tests/`, `experiments/claude/`, `docs/` — goes through the owning specialist.
 
 ## Communication conventions
 
@@ -348,73 +330,32 @@ On any new request from the user, the main Claude session should:
 
 ## PR and issue conventions
 
-- **Branch naming:** `type/N-kebab-scope`, where `type` is one of `feat`, `fix`, `docs`, `chore`,
-  `refactor`, `test`, and `N` is the primary tracking issue number (e.g.
-  `docs/19-pr-issue-conventions`). If no tracking issue exists, fall back to `type/kebab-scope`.
-  Never rename the head branch of an already-open PR — renaming breaks the PR.
-- **PR title:** `type: sentence-case summary (#N)` — `type` mirrors the branch type; the trailing
-  `(#N)` cites the primary tracking issue and is omitted only when no issue exists. The summary
-  text after `type:` starts lowercase, conventional-commits style (e.g. `docs: adopt...`,
-  `feat: per-agent...`) — this repo's "sentence case" rule (no title case, no ALL CAPS) still
-  governs everything after that first lowercase word.
-- **Closing keywords go in the body, not the title.** GitHub only auto-closes an issue from
-  `Closes #N` / `Fixes #N` in the PR body (or a commit message) — a title reference is a link, not
-  an auto-close.
-- **Every non-trivial PR references at least one issue or doc ID.** Issues are preferred (visible
-  downstream); a doc ID alone (`ADR-`, `BUG-`, `HYP-`, ...) is acceptable when no tracking issue
-  exists. Doc IDs are cited as identifiers of the maintainer's local decision record, never phrased
-  as a file a downstream reader can open.
-- **Issue title:** `type: sentence-case summary` — same type vocabulary as branches/PRs. A trailing
-  doc-ID parenthetical is allowed when the issue tracks a specific doc entry, e.g.
-  `fix: sentence-case summary (BUG-005)`.
-- **PR description skeleton** (mandatory for non-trivial PRs):
-
-  ```markdown
-  ### Summary
-
-  1-3 sentences: what changed and why.
-
-  **Linked:** Closes #N (auto-close on merge) or Refs #N (association only), plus any doc IDs
-  (maintainer's local decision record — not implied to be visible downstream).
-
-  <!-- no-issue example: -->
-  **Linked:** ADR-004 (maintainer's local decision record) — no tracking issue for this change.
-
-  ### Changes
-
-  | File | Change | Why |
-  |:--|:--|:--|
-
-  ### Verification
-
-  | Check | Command | Result |
-  |:--|:--|:--|
-
-  <!-- optional further sections as the change warrants, e.g.: -->
-  ### Known limitations
-  ### Notes
-  ```
+The full grammar (branch `type/N-kebab-scope`, PR title `type: lowercase summary (#N)`, closing
+keywords in bodies only, the mandatory tabled description skeleton) lives in `CONTRIBUTING.md`.
+Read it before any branch, PR, or issue work; every non-trivial PR references at least one issue
+or doc ID.
 
 ## When to break the rules
 
-Rules are skippable, but skipping must be explicit. To bypass a mandatory gate (e.g., proceed without critic review on a time-sensitive run), the orchestrator must write an `ADR-NNN` in `discussion.md` with:
+Rules are skippable, but skipping must be explicit. To bypass a mandatory gate (e.g., proceed without critic review on a time-sensitive run), the orchestrator must write an `ADR-NNN` in `.claude/research/discussion.md` with:
 
 - Which rule is being skipped.
 - Why.
 - What the rollback plan is if the skip turns out to have been wrong.
 
-A skipped gate without an ADR is a process bug. If you find one, file it to `error.md` as a `VAL-NNN`.
+A skipped gate without an ADR is a process bug. If you find one, file it to `.claude/research/error.md` as a `VAL-NNN`.
 
 After writing the bypass ADR, prefix the launch command with `GATE_OVERRIDE=ADR-NNN` — the
-mechanical gate hook verifies that the cited ADR actually exists in `discussion.md` before letting
-the run through. An override citing a nonexistent ADR is rejected.
+mechanical gate hook verifies that the cited ADR exists and contains Context, Decision,
+Consequences, and Rollback fields before letting the run through. A nonexistent or incomplete ADR
+is rejected.
 
 ## Bootstrapping
 
 On the first orchestrator invocation for a new project:
 
-1. Verify the four root docs exist; create empty stubs if any are missing.
-2. Create `tests/`, `experiments/`, `docs/` if they do not exist.
+1. Verify the four Claude research docs exist; create empty stubs if any are missing.
+2. Create `tests/`, `experiments/claude/`, `docs/` if they do not exist.
 3. `filemanager` performs a one-time audit: confirm data directories are gitignored, write `VER-001` capturing the current commit hash and environment.
 4. `data` performs a one-time audit of existing data pipelines: produce `DATASET-001` for each dataset in use, running the leakage checklist against whatever splits exist.
 5. `critic` reviews the bootstrap audit and files any `VAL-` issues found.

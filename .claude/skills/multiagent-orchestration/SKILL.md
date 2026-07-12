@@ -44,7 +44,7 @@ one context. For a tightly coupled single-file change, one agent is the right fl
 |---|---|---|
 | Conductor (main session) | Fable 5 | Judgment-dense: intent classification, dispatch decisions |
 | `orchestrator` | `fable` | Planning, routing, gate mediation, synthesis |
-| `orchestrator-opus` (fallback) | `opus` | Same role on Opus 4.8 via the explicitly gated backport prompt |
+| `orchestrator-opus` (fallback) | `opus` | Same role on Opus 4.8 via the explicit gated prompt |
 | All specialists | `sonnet` | Excellent per-domain execution; cheap enough to fan out |
 
 The lead does the judgment; the fleet does the work. Never assign orchestration to a specialist and
@@ -61,13 +61,25 @@ Scale effort to complexity — embed this decision in the plan, before dispatchi
 | Comparison / cross-domain | 2–4 specialists in parallel | 8–20 tool calls each |
 | Broad survey or full research cycle | staged waves, 3–5 parallel per wave | divide responsibilities explicitly |
 
-(Worker depths match Sonnet 5's own effort ladder. A subtask that would need more than ~30 worker
-tool calls is under-decomposed — split it before dispatching.)
+Hard numbers — this block is the single source; the orchestrator spec and both cores point here:
+- A subtask that would need more than ~30 worker tool calls is under-decomposed — split it before
+  dispatching. (Worker depths match Sonnet 5's own effort ladder.)
+- If the plan implies more than ~8 dispatches before the user sees anything, checkpoint with the
+  user first.
 
-Two hard rules. First, parallelize reads, serialize writes: literature search, EDA, audits, and
-reviews fan out safely; code edits, doc appends to the same file, and decisions are single-threaded,
-because parallel writers make conflicting implicit decisions. Second, if the plan implies more than
-~8 dispatches before the user sees anything, checkpoint with the user first.
+Parallelize reads, serialize writes: literature search, EDA, audits, and reviews fan out safely;
+code edits, doc appends to the same file, and decisions are single-threaded, because parallel
+writers make conflicting implicit decisions. Gate stages on independent artifacts fan out too:
+critic's plan review can run alongside data's split documentation and qa's code gate when none
+consumes another's output — serialize only the decision that consumes them.
+
+A fan-out request is not planned until every requested deliverable has a dispatched owner. When a
+request names N independent read tasks, dispatch ALL N in the FIRST dispatch message (one message,
+multiple Agent calls) — never let one subtask's depth starve the others. Every fan-out BRIEF
+carries a scope budget in its done-when (which sources/files, roughly how many tool calls per the
+depth ladder above), so no worker grinds unboundedly while siblings wait. Placeholder topics in
+the request (e.g. "X, Y, Z") are dispatched with the assumption stated in the brief, per
+clarify-once — they are not a reason to defer the fan-out.
 
 ## Clarify once, then commit
 
@@ -81,11 +93,11 @@ ask twice. While waiting on a genuine blocker, do not dispatch work that the ans
 A sweep (hyperparameter grid, multi-seed batch, ablation set) is ONE experiment with many
 sub-runs, not many experiments:
 
-- One EXP-ID for the whole sweep. Sub-runs live in `experiments/EXP-NNN/runs/<tag>/`, each with
+- One EXP-ID for the whole sweep. Sub-runs live in `experiments/claude/EXP-NNN/runs/<tag>/`, each with
   its own `status.json` and `run.log` via the status wrapper.
 - **Single writer**: exactly one `experiment-tracker` instance owns the sweep. Sub-runs never
-  write to `result.md`; the tracker writes ONE EXP entry with the comparison table at fan-in
-  (`python3 .claude/scripts/sweep_summary.py experiments/EXP-NNN` builds it).
+  write to `.claude/research/result.md`; the tracker writes ONE EXP entry with the comparison table at fan-in
+  (`python3 .claude/scripts/sweep_summary.py experiments/claude/EXP-NNN` builds it).
 - Prefer config-driven variation (one code path, different flags) over code-variant sweeps. When
   variants must change code, dispatch one `developer` per variant in an isolated worktree and
   merge only the winner — parallel writers on one tree make conflicting implicit decisions.
@@ -127,10 +139,14 @@ hard — a fourth iteration means the brief or the plan is wrong, and grinding f
 
 Externalize state immediately; assume your context can be compacted at any time:
 
-- The plan lives in `discussion.md` as a `PLAN` entry, written before the first dispatch and
-  status-updated as stages land — one stage `in_progress` at a time, marked the moment it finishes.
+- The plan lives in `.claude/research/discussion.md` as a `PLAN` entry when the work spans
+  multiple dispatches or fires a quality gate — written before the first dispatch and
+  status-updated as stages land, one stage `in_progress` at a time. A single-dispatch task that
+  changes no research state keeps its plan inline: no PLAN entry, no STATE entry — doc writes on
+  trivial flows are overhead, not discipline.
 - Decisions live as `ADR` entries the moment they are made, with the inputs (REV/BUG/HYP) named.
-- Session state worth surviving a restart goes in a `STATE` entry, not in your head.
+- Session state worth surviving a restart goes in a `STATE` entry — written only when research
+  state actually changed this session.
 
 ## Failure handling
 

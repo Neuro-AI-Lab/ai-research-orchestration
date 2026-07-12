@@ -35,7 +35,7 @@ If any item fails, do not run. Fix it first.
 
 ## Metadata to capture for every run
 
-Capture these into a per-run directory (e.g. `experiments/<run-id>/`) so the run can
+Capture these into a per-run directory (e.g. `experiments/claude/<run-id>/`) so the run can
 be reconstructed exactly:
 
 | Field         | Why it matters                                    |
@@ -63,7 +63,7 @@ summarize results from memory.
 ## [run-id] short title | YYYY-MM-DD
 **Hypothesis:** <id, claim in one line>
 **Status:** complete | failed | inconclusive
-**Dataset:** <id>   **Config:** `experiments/<run-id>/config.yaml`
+**Dataset:** <id>   **Config:** `experiments/claude/<run-id>/config.yaml`
 
 ### Setup
 | Parameter | Value |

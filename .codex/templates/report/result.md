@@ -1,6 +1,7 @@
-# Codex results
+# Codex research results
 
-Current-version experiment results and grounded reports.
+Current experiment results and grounded reports. Record failed and inconclusive runs as well as
+successful runs.
 
 ## Summary
 
@@ -13,8 +14,8 @@ Current-version experiment results and grounded reports.
 **Hypothesis:** HYP-NNN
 **Status:** complete | failed | inconclusive
 **Setup:** task, method, model, DATASET-ID, hardware, wall-clock, seeds
-**Results:** metric table with exact log sources and uncertainty
-**Artifacts:** experiments/codex/EXP-NNN/
+**Results:** metric table with exact artifact sources and uncertainty
+**Artifacts:** experiments/runs/EXP-NNN/
 **Linked:** HYP-NNN, REV-NNN, DATASET-NNN, QA-NNN
 ---
 
@@ -22,5 +23,6 @@ Current-version experiment results and grounded reports.
 **Covers:** EXP-NNN, ...
 **Clearance:** REV-NNN
 **Summary:** ...
+**Limitations:** ...
 ---
 -->

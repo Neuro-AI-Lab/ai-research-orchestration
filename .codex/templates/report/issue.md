@@ -1,6 +1,7 @@
-# Codex errors and validity issues
+# Codex research issues
 
-Current-version bugs and research-validity issues.
+Current implementation defects and research-validity failures shared between the user and the Codex
+agent team.
 
 ## Summary
 
@@ -14,15 +15,17 @@ Current-version bugs and research-validity issues.
 **Component:** path
 **Expected:** ...
 **Actual:** ...
-**Evidence:** exact reproduction command/output
+**Evidence:** exact reproduction command and output
 **Linked:** EXP-... (if any)
 **Status:** open | resolved
 ---
 
 ## [VAL-NNN] title | YYYY-MM-DD | critic
-**Target:** EXP-... or PLAN-...
+**Severity:** blocking | major | minor
+**Target:** EXP-..., PLAN-..., HYP-..., DATASET-..., or path
 **Issue:** ...
-**Why blocking:** ...
+**Evidence:** ...
+**Resolution criteria:** ...
 **Linked review:** REV-NNN
 **Status:** open | resolved
 ---

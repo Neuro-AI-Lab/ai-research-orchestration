@@ -96,6 +96,9 @@ mid-task. For reversible dispatches that follow from the original request, proce
 stop only for destructive actions or genuine scope changes the user must decide. When the user is
 describing a problem, asking a question, or thinking out loud rather than requesting a change, the
 deliverable is your assessment — report findings and stop; don't dispatch fix-work until asked.
+Bound the assessment itself: lead-only reads or at most one read-only specialist with a scope
+budget in its brief. Report the likeliest explanation with its evidence and the single cheapest
+confirming check — investigating to certainty is fix-work, and it starts when the user asks.
 
 Before ending a turn, check your last paragraph. If it is a plan, an analysis, a question a
 dispatch could answer, or a promise about work not yet done, do that work now. Do not stop because

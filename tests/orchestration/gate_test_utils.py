@@ -25,7 +25,8 @@ def run_hook(command, backend="codex", discussion=DISCUSSION, error="# error\n")
     hook = os.path.join(REPO_ROOT, "." + backend, "hooks", "experiment_gate.py")
     payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": command}})
     with tempfile.TemporaryDirectory() as root:
-        state = os.path.join(root, "." + backend, "research")
+        state = (os.path.join(root, "report") if backend == "claude"
+                 else os.path.join(root, "." + backend, "research"))
         os.makedirs(state)
         with open(os.path.join(state, "discussion.md"), "w", encoding="utf-8") as handle:
             handle.write(discussion)

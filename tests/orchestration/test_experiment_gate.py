@@ -10,7 +10,7 @@ MENTION_ONLY = (
     "bash -n evaluate.sh",
     "grep -E 'run.sh|evaluate.sh' README.md",
     "echo 'use (run.sh) later'",
-    "grep -rn 'python models/train.py' README.md",
+    "grep -rn 'python model/train.py' README.md",
     "wc -l setup.sh run.sh evaluate.sh",
     "cat <<EOF\n./run.sh train\nEOF",
 )
@@ -20,7 +20,7 @@ REAL_LAUNCHES = (
     "CUDA_VISIBLE_DEVICES=0 ./run.sh train",
     "bash run.sh train",
     "true && ./evaluate.sh test",
-    "python3 models/train.py",
+    "python3 {src}/train.py",
     "x=$(./run.sh train)",
     "bash <<EOF\n./run.sh train\nEOF",
 )
@@ -36,6 +36,7 @@ def test_read_only_mentions_are_allowed(backend, command):
 @pytest.mark.parametrize("backend", ("codex", "claude"))
 @pytest.mark.parametrize("command", REAL_LAUNCHES)
 def test_real_launches_require_research_attestations(backend, command):
+    command = command.format(src="model" if backend == "claude" else "models")
     proc = run_hook(command, backend=backend)
     assert proc.returncode == 2, (backend, command, proc.stderr)
     assert "GATE" in proc.stderr

@@ -56,7 +56,9 @@ class DistributionValidation(unittest.TestCase):
                      "docs/orchestration/CODEX.md", "docs/orchestration/CODEX.ko.md",
                      "docs/orchestration/CLAUDE.md", "docs/orchestration/CLAUDE.ko.md",
                      "docs/orchestration/MAINTAINERS.md",
-                     "docs/orchestration/MAINTAINERS.ko.md", ".codex/ORCHESTRATION.md",
+                     "docs/orchestration/MAINTAINERS.ko.md",
+                     "docs/orchestration/PROJECT_MAP.md",
+                     "docs/orchestration/PROJECT_MAP.ko.md", ".codex/ORCHESTRATION.md",
                      ".codex/templates/plan/PRD.md",
                      ".codex/templates/plan/CHECKLIST.md",
                      ".codex/templates/report/discussion.md",
@@ -116,8 +118,25 @@ class DistributionValidation(unittest.TestCase):
             "functionals/", "utils/",
         }
         actual = set(project_map["categories"]["research-workspace"]["paths"])
-        self.assertEqual(actual, expected)
+        self.assertTrue(expected.issubset(actual))
+        self.assertIn("run.sh", actual)
+        self.assertIn("evaluate.sh", actual)
         self.assertIn("README.md", project_map["categories"]["adapt-and-rewrite"]["files"])
+        providers = project_map["categories"]["provider-orchestration-core"]["providers"]
+        self.assertEqual(set(providers), {"codex", "claude"})
+        self.assertIn(".codex/", providers["codex"]["paths"])
+        self.assertIn(".claude/", providers["claude"]["paths"])
+
+    def test_adaptation_report_is_provider_aware_and_read_only(self):
+        report = launcher.adaptation_report("codex")
+        self.assertEqual(report["backend"], "codex")
+        self.assertEqual(report["unselected_provider"], "claude")
+        self.assertIn(".claude/", report["unselected_provider_paths"])
+        self.assertIn("docs/", report["template_only_paths"])
+        self.assertIn("requirements.txt", {item["path"] for item in report["rewrite_files"]})
+        self.assertFalse(report["mutated"])
+        parsed = launcher.parser().parse_args(["adapt", "codex", "--json"])
+        self.assertEqual((parsed.command, parsed.target, parsed.json), ("adapt", "codex", True))
 
     def test_codex_skill_set_is_complete_and_distribution_ready(self):
         skill_root = os.path.join(ROOT, ".agents", "skills")

@@ -375,7 +375,7 @@ def initialize_project(backend):
     )
     for name in workspace:
         os.makedirs(os.path.join(ROOT, name), exist_ok=True)
-    print_adaptation_checklist()
+    print_adaptation_checklist(backend)
     print(
         "{} initialization complete. Run './orchestrate doctor {}', then "
         "'./orchestrate {}'.".format(backend.capitalize(), backend, backend)
@@ -383,15 +383,20 @@ def initialize_project(backend):
     return 0
 
 
-def print_adaptation_checklist():
-    """Recommend new-project adaptations from the shared machine-readable path map.
-
-    Advisory only: nothing is deleted or rewritten here — the user applies the
-    recommendations (or asks the orchestrator to, which still confirms first)."""
+def adaptation_report(backend):
+    """Return a read-only, provider-aware adaptation report from the path map."""
+    if backend not in ("codex", "claude"):
+        raise LaunchError("adapt requires exactly one backend: codex or claude")
     project_map = read_json(os.path.join(ROOT, ".orchestration", "project_map.json"), {})
     categories = project_map.get("categories", {})
-    deletable = [
+    template_only = [
         path for path in categories.get("template-dev-only", {}).get("paths", [])
+        if os.path.exists(os.path.join(ROOT, path))
+    ]
+    providers = categories.get("provider-orchestration-core", {}).get("providers", {})
+    unselected = "claude" if backend == "codex" else "codex"
+    provider_removals = [
+        path for path in providers.get(unselected, {}).get("paths", [])
         if os.path.exists(os.path.join(ROOT, path))
     ]
     rewrites = []
@@ -400,17 +405,54 @@ def print_adaptation_checklist():
         try:
             with open(target, encoding="utf-8") as handle:
                 if spec.get("marker") and spec["marker"] in handle.read():
-                    rewrites.append((name, spec.get("advice", "rewrite for this project")))
+                    rewrites.append({
+                        "path": name,
+                        "advice": spec.get("advice", "rewrite for this project"),
+                    })
         except OSError:
             continue
-    if not deletable and not rewrites:
-        return
-    print("New-project adaptation (see README.md, Project layout):")
-    if deletable:
-        print("  template-only paths you can delete: " + ", ".join(deletable))
-    for name, advice in rewrites:
-        print("  rewrite {}: {}".format(name, advice))
-    print("  Ask the orchestrator to apply these once confirmed; git actions still need your explicit request.")
+    return {
+        "backend": backend,
+        "human_guides": [
+            "docs/orchestration/PROJECT_MAP.md",
+            "docs/orchestration/PROJECT_MAP.ko.md",
+        ],
+        "unselected_provider": unselected,
+        "unselected_provider_paths": provider_removals,
+        "template_only_paths": template_only,
+        "rewrite_files": rewrites,
+        "mutated": False,
+    }
+
+
+def print_adaptation_checklist(backend, as_json=False):
+    """Recommend adaptations; never delete or rewrite files."""
+    report = adaptation_report(backend)
+    if as_json:
+        print(json.dumps(report, indent=2, sort_keys=True))
+        return 0
+    print(
+        "New-project adaptation for {} (see docs/orchestration/PROJECT_MAP.md and "
+        "PROJECT_MAP.ko.md):".format(backend)
+    )
+    if report["unselected_provider_paths"]:
+        print(
+            "  unselected {} control plane you can remove after init: {}".format(
+                report["unselected_provider"], ", ".join(report["unselected_provider_paths"])
+            )
+        )
+    if report["template_only_paths"]:
+        print(
+            "  template/distribution paths to review then remove: "
+            + ", ".join(report["template_only_paths"])
+        )
+    for item in report["rewrite_files"]:
+        print("  rewrite {}: {}".format(item["path"], item["advice"]))
+    print(
+        "  No files were changed. Ask the root orchestrator to apply an approved subset; "
+        "deletions, license choice, and git actions require explicit user direction."
+    )
+    return 0
 
 
 def doctor(backend):
@@ -843,7 +885,7 @@ def parser():
     )
     result.add_argument(
         "command", nargs="?",
-        choices=("codex", "claude", "init", "doctor", "release-check", "audit", "runs"),
+        choices=("codex", "claude", "init", "doctor", "adapt", "release-check", "audit", "runs"),
     )
     result.add_argument(
         "target", nargs="?",
@@ -862,9 +904,9 @@ def parser():
 
 def main(argv=None):
     args = parser().parse_args(argv)
-    if args.command not in ("init", "doctor", "audit", "runs") and args.target is not None:
+    if args.command not in ("init", "doctor", "adapt", "audit", "runs") and args.target is not None:
         raise LaunchError("unexpected positional argument: {}".format(args.target))
-    if args.command not in ("audit", "runs") and (args.backend or args.json):
+    if args.command not in ("audit", "runs", "adapt") and (args.backend or args.json):
         raise LaunchError("--backend and --json are audit-command options")
     saved = read_json(LOCAL_CONFIG, {})
     if args.command == "init":
@@ -891,6 +933,14 @@ def main(argv=None):
             raise LaunchError("doctor backend must be codex or claude")
         warn_backend_mismatch(saved, backend)
         return doctor(backend)
+    if args.command == "adapt":
+        backend = args.target or args.backend or saved.get("backend")
+        if not backend:
+            backend = choose("Select backend to adapt for:", ["codex", "claude"], "codex")
+        if backend not in ("codex", "claude"):
+            raise LaunchError("adapt backend must be codex or claude")
+        enforce_backend_lock(saved, backend)
+        return print_adaptation_checklist(backend, as_json=args.json)
     if args.command == "release-check":
         return release_check()
     if args.command in ("audit", "runs"):

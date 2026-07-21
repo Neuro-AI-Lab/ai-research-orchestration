@@ -1,8 +1,10 @@
 {
-  "purpose": "Machine-readable path map for new-project adaptation. Human guide: docs/orchestration/PROJECT_MAP.md (+ .ko.md). Consumed by `./orchestrate init` to print the adaptation checklist for either backend.",
+  "schema_version": 1,
+  "purpose": "Machine-readable inventory and new-project adaptation policy. Human guides: docs/orchestration/PROJECT_MAP.md and PROJECT_MAP.ko.md.",
+  "coverage": "Every tracked distribution path must match at least one category path or adapt-and-rewrite file.",
   "categories": {
     "research-workspace": {
-      "action": "keep — your project's working space",
+      "action": "keep — this is the research project's working space",
       "paths": [
         "plan/",
         "report/",
@@ -11,65 +13,102 @@
         "experiments/",
         "analysis/",
         "functionals/",
-        "utils/"
+        "utils/",
+        "run.sh",
+        "evaluate.sh"
       ]
     },
-    "orchestration-core": {
-      "action": "keep — required for the agent system to run",
+    "shared-orchestration-core": {
+      "action": "keep while the selected agent system is in use",
       "paths": [
-        "CLAUDE.md",
-        ".claude/",
-        "AGENTS.md",
-        ".codex/",
-        ".agents/",
-        ".mcp.json",
         "orchestrate",
-        ".orchestration/",
-        "run.sh",
-        "evaluate.sh",
-        "setup.sh",
-        ".gitignore"
+        ".orchestration/launcher.py",
+        ".orchestration/isolation.py",
+        ".orchestration/config.local.json.example"
       ]
+    },
+    "provider-orchestration-core": {
+      "action": "keep the selected provider; the unselected provider is removable after init",
+      "providers": {
+        "codex": {
+          "paths": [
+            "AGENTS.md",
+            ".codex/",
+            ".agents/"
+          ]
+        },
+        "claude": {
+          "paths": [
+            "CLAUDE.md",
+            ".claude/",
+            ".mcp.json"
+          ]
+        }
+      }
     },
     "template-dev-only": {
-      "action": "safe to delete in a real research project",
+      "action": "review, then delete in a real research project unless maintaining this template",
       "paths": [
         "tests/",
         ".github/",
-        "docs/"
+        "docs/",
+        ".orchestration/release_check.py",
+        ".orchestration/validate_system.py",
+        "setup.sh"
       ],
       "notes": {
-        "tests/": "validates the template's own orchestration system; keep only if you want to re-verify the system after modifying it",
-        ".github/": "the template's distribution CI; replace with your project's CI",
-        "docs/": "template usage guides (docs/orchestration/); delete after reading or keep as reference"
+        "tests/": "validates the template's orchestration distribution",
+        ".github/": "template distribution CI; replace with project CI",
+        "docs/": "template usage and maintainer guides; read PROJECT_MAP before deletion",
+        ".orchestration/release_check.py": "dual-provider distribution release gate",
+        ".orchestration/validate_system.py": "template-maintainer validation suite",
+        "setup.sh": "one-line init wrapper; optional after initialization"
       }
     },
+    "adaptation-support": {
+      "action": "keep until adaptation is complete; optional afterward",
+      "paths": [
+        ".orchestration/project_map.json"
+      ]
+    },
     "adapt-and-rewrite": {
-      "action": "keep the file, truncate/rewrite its content for the new project",
+      "action": "keep the file but truncate or rewrite template content for the new project",
       "files": {
         "README.md": {
           "marker": "# AI Research Orchestration",
-          "advice": "replace with your project's README"
+          "advice": "replace with the project's README"
         },
         "README.ko.md": {
           "marker": "# AI 연구 오케스트레이션",
-          "advice": "replace with your project's Korean README (or delete)"
+          "advice": "replace with the project's Korean README or delete it"
         },
         "LICENSE": {
           "marker": "Copyright (c) 2026 Dae Hyeon Kim",
-          "advice": "set your project's license and holder"
+          "advice": "choose the project's license and copyright holder"
         },
         "requirements.txt": {
           "marker": "add your",
-          "advice": "replace with your project's dependencies (single file; drop pytest lines if you delete tests/)"
+          "advice": "keep one dependency file and replace template-test dependencies with project dependencies"
+        },
+        ".gitignore": {
+          "marker": "# Research project workspace",
+          "advice": "review data, checkpoint, run-output, paper, and secret policies for this project"
+        },
+        "run.sh": {
+          "marker": "has not been implemented yet",
+          "advice": "implement the reproducible project training/experiment entrypoint"
+        },
+        "evaluate.sh": {
+          "marker": "has not been implemented yet",
+          "advice": "implement the project evaluation entrypoint and metric checks"
         },
         "plan/PRD.md": {
           "marker": "<project name>",
-          "advice": "fill in your project's PRD with the orchestrator"
+          "advice": "fill in the user-approved research PRD with the root orchestrator"
         },
         "plan/CHECKLIST.md": {
           "marker": "<project name>",
-          "advice": "fill in your project's checklist with the orchestrator"
+          "advice": "fill in the evidence-linked project checklist with the root orchestrator"
         }
       }
     }

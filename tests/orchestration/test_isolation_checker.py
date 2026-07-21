@@ -17,7 +17,11 @@ def configure_fixture(monkeypatch, tmp_path, codex_text, claude_text="provider c
     (tmp_path / "CLAUDE.md").write_text(claude_text, encoding="utf-8")
     config = tmp_path / ".codex" / "config.toml"
     config.parent.mkdir(parents=True)
-    config.write_text("[agents]\nmax_threads = 4\nmax_depth = 1\n", encoding="utf-8")
+    config.write_text(
+        "[features]\nmulti_agent_v2 = false\n"
+        "[agents]\nmax_depth = 1\nmax_threads = 4\n",
+        encoding="utf-8",
+    )
     for preset in ("quality", "balanced", "fast"):
         fleet = tmp_path / ".codex" / "fleets" / preset
         fleet.mkdir(parents=True)
@@ -81,7 +85,8 @@ def test_codex_orchestrator_subagent_and_extra_depth_fail(monkeypatch, tmp_path)
     configure_fixture(monkeypatch, tmp_path, "provider control\n")
     config = tmp_path / ".codex" / "config.toml"
     config.write_text(
-        "[agents]\nmax_threads = 4\nmax_depth = 2\n"
+        "[features]\nmulti_agent_v2 = false\n"
+        "[agents]\nmax_depth = 2\nmax_threads = 4\n"
         "[agents.orchestrator]\nconfig_file = 'x'\n",
         encoding="utf-8",
     )

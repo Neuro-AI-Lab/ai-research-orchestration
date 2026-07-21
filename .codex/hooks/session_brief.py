@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SessionStart hook: inject a situational brief so agents resume where the last session stopped.
+"""Start hook: inject a valid-JSON situational brief for roots and specialists.
 
 Stdout from this hook is added to the session context. It surfaces, mechanically (no LLM):
   - the structured hand-off from the previous session (.codex/state/handoff.json)
@@ -51,7 +51,7 @@ def pid_alive(pid):
         return False
 
 
-def main():
+def continuity_context(root):
     root = os.environ.get('CODEX_PROJECT_DIR') or os.getcwd()
     lines = ['[session-brief] Automatic continuity brief (SessionStart hook):']
 
@@ -125,7 +125,30 @@ def main():
 
     if len(lines) == 1:
         lines.append('- Clean slate: no hand-off, no open gates, no running experiments.')
-    print('\n'.join(lines))
+    return '\n'.join(lines)
+
+
+def emit(event, context):
+    print(json.dumps({
+        'hookSpecificOutput': {
+            'hookEventName': event,
+            'additionalContext': context,
+        }
+    }))
+
+
+def main():
+    try:
+        payload = json.load(sys.stdin)
+    except (TypeError, ValueError):
+        print(json.dumps({'systemMessage': 'session-brief received invalid hook JSON'}))
+        return 0
+    event = payload.get('hook_event_name')
+    if event not in {'SessionStart', 'SubagentStart'}:
+        print(json.dumps({'systemMessage': 'session-brief ignored unsupported hook event'}))
+        return 0
+    root = os.environ.get('CODEX_PROJECT_DIR') or os.getcwd()
+    emit(event, continuity_context(root))
     return 0
 
 

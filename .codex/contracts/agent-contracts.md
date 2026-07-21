@@ -27,6 +27,8 @@ python3 .codex/scripts/orchestration_audit.py brief --role ROLE --dispatch DISPA
 
 `--dispatch` and `--role` must match the block. The native start hook binds and delivers the registered
 BRIEF to the runtime-issued agent ID. Registration after the spawn cannot satisfy the contract.
+The spawn itself must use stable `multi_agent_v1.spawn_agent`, `agent_type=ROLE`, and
+`fork_context=false`; a full-history fork inherits the root configuration.
 
 ## RESULT
 

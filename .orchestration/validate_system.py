@@ -236,7 +236,9 @@ class DistributionValidation(unittest.TestCase):
             self.assertTrue(any("audit_event.py" in command for command in commands), event)
         with open(os.path.join(ROOT, ".codex", "hooks", "session_close_gate.py"),
                   encoding="utf-8") as handle:
-            self.assertIn("record_completed_stop", handle.read())
+            close_hook = handle.read()
+        self.assertIn("record_turn_stop", close_hook)
+        self.assertIn("turn_stopped", close_hook)
 
     def test_clean_root_templates_match_positive_gate_schema(self):
         template_dir = os.path.join(ROOT, ".codex", "templates", "report")
@@ -421,6 +423,9 @@ class DistributionValidation(unittest.TestCase):
 
     def test_dry_run_commands(self):
         codex = launcher.build_codex("quality", "safe", {}, False, False)
+        self.assertIn("--strict-config", codex)
+        self.assertEqual(codex[codex.index("--model") + 1], "gpt-5.6-luna")
+        self.assertIn("features.multi_agent_v2=false", codex)
         self.assertIn("--sandbox", codex)
         self.assertIn("workspace-write", codex)
         self.assertIn("on-request", codex)
@@ -679,6 +684,7 @@ class DistributionValidation(unittest.TestCase):
         self.assertIn("Checkpoint with the user before eight dispatches", codex_flat)
         self.assertRegex(config, r"(?m)^max_depth\s*=\s*1\s*$")
         self.assertRegex(config, r"(?m)^max_threads\s*=\s*4\s*$")
+        self.assertRegex(config, r"(?m)^multi_agent_v2\s*=\s*false\s*$")
         self.assertNotIn("[agents.orchestrator]", config)
         direct_dispatch_edges = len(CODEX_ROLES)
         layered_dispatch_edges = direct_dispatch_edges + 1
@@ -697,7 +703,10 @@ class DistributionValidation(unittest.TestCase):
         if not shutil_which("codex"):
             self.skipTest("codex unavailable")
         files = {role: launcher.agent_path("quality", role) for role in CODEX_ROLES}
-        launcher.validate_codex(files, "gpt-5.6-sol", "xhigh")
+        launcher.validate_codex(files, *launcher.PRESETS["quality"])
+        catalog = launcher.codex_catalog()
+        for root_model, _ in launcher.PRESETS.values():
+            self.assertIn(catalog[root_model]["multi_agent_version"], (None, "v1"))
         launcher.validate_codex_mcp()
 
 

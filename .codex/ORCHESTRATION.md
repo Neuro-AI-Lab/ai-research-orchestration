@@ -134,6 +134,16 @@ agent ID and injects that exact text as authoritative specialist context. The tr
 deleted after delivery; the ledger retains only its SHA-256 hash and contract metadata. A missing
 registration cannot be repaired retroactively and remains visible in `./orchestrate audit latest`.
 
+Call stable `multi_agent_v1.spawn_agent` with `agent_type` equal to the registered ROLE and
+`fork_context=false`. Do not use a full-history fork for a role-specific child because it inherits
+the root role/model. If `agent_type` is absent from the tool schema, the launch is incompatible and
+must fail closed.
+
+The launcher must select a root model whose installed catalog metadata resolves to multi-agent V1
+(or leaves the version unset so the explicit V1 feature setting applies). V2-tagged models may be
+specialists at depth 1, but must not be the root because their reserved spawn schema removes the
+ROLE selector. `doctor` validates this boundary against the installed Codex catalog.
+
 Use the minimum fleet:
 
 | Task shape | Fleet |

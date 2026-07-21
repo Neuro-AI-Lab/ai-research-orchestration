@@ -29,8 +29,8 @@ ROLES = {
     "filemanager", "writer",
 }
 EVENT_TYPES = {
-    "session_started", "session_stopped", "brief_registered", "subagent_started",
-    "subagent_stopped", "research_gate",
+    "session_started", "session_stopped", "turn_stopped", "session_ended",
+    "brief_registered", "subagent_started", "subagent_stopped", "research_gate",
 }
 RUN_ID = re.compile(r"^ORCH-\d{8}-\d{3,}$")
 SAFE_TOKEN = re.compile(r"^[A-Za-z0-9_.:@+-]{1,180}$")
@@ -233,6 +233,8 @@ def append_event_locked(directory, manifest, event_type, fields):
     errors = chain_errors(events)
     if errors:
         raise AuditError("event chain is invalid: " + "; ".join(errors[:3]))
+    if any(event.get("event") == "session_ended" for event in events):
+        raise AuditError("cannot append to an ended run")
     previous = events[-1].get("event_hash") if events else None
     fields = dict(fields)
     if event_type == "session_started" and not fields.get("topology"):
@@ -261,10 +263,10 @@ def append_event_locked(directory, manifest, event_type, fields):
         manifest["root_session_id"] = fields.get("session_id")
         manifest["conductor_orchestrator"] = "verified"
         manifest["status"] = "running"
-    if (event_type == "session_stopped"
-            and fields.get("session_id") == manifest.get("root_session_id")):
-        manifest["status"] = "completed"
+    if event_type == "session_ended":
+        manifest["status"] = "completed" if fields.get("exit_code") == 0 else "failed"
         manifest["completed_at"] = event["timestamp"]
+        manifest["exit_code"] = fields.get("exit_code")
     atomic_json(os.path.join(directory, "manifest.json"), manifest)
     return event
 
@@ -279,6 +281,23 @@ def append_event(event_type, fields=None, run_id=None, root=None):
         if manifest.get("backend") != BACKEND or manifest.get("run_id") != run_id:
             raise AuditError("run manifest identity mismatch")
         return append_event_locked(directory, manifest, event_type, fields or {})
+
+
+def finish_run(exit_code, run_id=None, root=None):
+    """Mark a run ended only after the launcher observes the Codex process exit."""
+    run_id = active_run_id(run_id)
+    directory = run_directory(run_id, root)
+    with run_lock(directory):
+        manifest = load_json(os.path.join(directory, "manifest.json"))
+        if manifest.get("status") in {"completed", "failed"}:
+            raise AuditError("run already ended: {}".format(run_id))
+        event = append_event_locked(directory, manifest, "session_ended", {
+            "session_id": manifest.get("root_session_id"),
+            "exit_code": int(exit_code),
+            "runtime_source": "launcher_process_exit",
+        })
+        purge_pending(run_id=run_id, root=root)
+        return event
 
 
 def parse_brief(text):
@@ -428,6 +447,11 @@ def verify_run(target="latest", root=None):
         if event.get("event") == "session_started" and event.get("session_id") == root_id
     ]
     root_verified = bool(root_id) and bool(root_starts)
+    end_events = [event for event in events if event.get("event") == "session_ended"]
+    if len(end_events) > 1:
+        errors.append("run has multiple process-exit events")
+    if end_events and events[-1].get("event") != "session_ended":
+        errors.append("process-exit event is not final")
     topology_verified = (
         manifest.get("topology") == "root-conductor-direct"
         and any(event.get("topology") == "root-conductor-direct" for event in root_starts)
@@ -452,6 +476,7 @@ def verify_run(target="latest", root=None):
         direct_routing = direct_routing and parent_valid
         specialists.append({
             "role": event.get("role"),
+            "model": event.get("model") or "unknown",
             "agent_id": agent_id,
             "parent_session_id": event.get("session_id"),
             "brief": "delivered" if brief_valid else "missing",
@@ -478,8 +503,13 @@ def verify_run(target="latest", root=None):
         unverified.append("root session was not observed by the native SessionStart hook")
     if not topology_verified:
         unverified.append("root-conductor-direct topology was not verified")
-    if manifest.get("status") != "completed":
-        unverified.append("root session has not completed")
+    ended = manifest.get("status") in {"completed", "failed"}
+    if not ended:
+        unverified.append("root Codex process has not ended")
+    if manifest.get("status") == "failed":
+        unverified.append("root Codex process exited with code {}".format(
+            manifest.get("exit_code")
+        ))
     registered = {
         event.get("dispatch") for event in events if event.get("event") == "brief_registered"
     }
@@ -527,7 +557,10 @@ def print_report(report):
     if not report["specialists"]:
         print("  none")
     for item in report["specialists"]:
-        print("  {role:<18} {agent_id:<38} BRIEF {brief:<7} RESULT {result}".format(**item))
+        print(
+            "  {role:<18} {agent_id:<38} MODEL {model:<18} "
+            "BRIEF {brief:<7} RESULT {result}".format(**item)
+        )
     gates = report["research_gates"]
     print("Research gates: {} allowed, {} blocked".format(gates["allowed"], gates["blocked"]))
     print("Unverified claims: {}".format(report["unverified_claims"]))
@@ -568,6 +601,9 @@ def parser():
     brief = commands.add_parser("brief")
     brief.add_argument("--role", required=True, choices=sorted(ROLES))
     brief.add_argument("--dispatch", required=True)
+    end = commands.add_parser("end")
+    end.add_argument("--run-id", required=True)
+    end.add_argument("--exit-code", required=True, type=int)
     audit = commands.add_parser("audit")
     audit.add_argument("target", nargs="?", default="latest")
     audit.add_argument("--json", action="store_true")
@@ -587,6 +623,10 @@ def main(argv=None):
         print("BRIEF registered: {} {} {}".format(
             event["dispatch"], event["role"], event["brief_sha256"]
         ))
+        return 0
+    if args.command == "end":
+        event = finish_run(args.exit_code, run_id=args.run_id)
+        print("Run ended: {} exit_code={}".format(event["run_id"], event["exit_code"]))
         return 0
     if args.command == "audit":
         report = verify_run(args.target)

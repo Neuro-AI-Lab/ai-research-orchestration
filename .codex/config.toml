@@ -1,11 +1,12 @@
 [features]
 hooks = true
 multi_agent = true
+multi_agent_v2 = false
 
 [agents]
-max_threads = 4
 # The root is the conductor-orchestrator; specialists cannot spawn another layer.
 max_depth = 1
+max_threads = 4
 interrupt_message = true
 
 [agents.brainstorm]

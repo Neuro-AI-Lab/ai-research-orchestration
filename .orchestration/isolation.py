@@ -82,13 +82,16 @@ def iter_files(surface):
                 yield os.path.relpath(full, ROOT), full
 
 
-def provider_isolation_errors():
+def provider_isolation_errors(active_backend=None):
+    if active_backend not in (None, "codex", "claude"):
+        return ["unknown active provider: {}".format(active_backend)]
     errors = []
     for name in ROOT_STATE:
         if os.path.exists(os.path.join(ROOT, name)):
             errors.append("legacy shared control file exists at repository root: " + name)
 
-    for surface in ("codex", "claude"):
+    surfaces = (active_backend,) if active_backend else ("codex", "claude")
+    for surface in surfaces:
         expected_prefix = "report/"
         for relative, path in iter_files(surface):
             try:
@@ -125,62 +128,65 @@ def provider_isolation_errors():
                             relative, line_number
                         )
                     )
-    config_path = os.path.join(ROOT, ".codex", "config.toml")
-    try:
-        with open(config_path, encoding="utf-8") as handle:
-            config = handle.read()
-    except OSError as exc:
-        errors.append(".codex/config.toml: cannot verify Codex topology: {}".format(exc))
-        config = ""
-    if config and not re.search(r"(?m)^max_depth\s*=\s*1\s*$", config):
-        errors.append(".codex/config.toml: Codex max_depth must be 1")
-    if config and not re.search(r"(?m)^max_threads\s*=\s*4\s*$", config):
-        errors.append(".codex/config.toml: Codex max_threads must be 4")
-    if "[agents.orchestrator]" in config:
-        errors.append(".codex/config.toml: root Codex must not configure an orchestrator subagent")
-
-    legacy_templates = os.path.join(ROOT, ".codex", "templates", "research")
-    if os.path.exists(legacy_templates):
-        errors.append(".codex/templates/research: legacy Codex templates must not ship")
-
-    for preset in ("quality", "balanced", "fast"):
-        directory = os.path.join(ROOT, ".codex", "fleets", preset)
+    if active_backend in (None, "codex"):
+        config_path = os.path.join(ROOT, ".codex", "config.toml")
         try:
-            actual = {
-                os.path.splitext(name)[0] for name in os.listdir(directory)
-                if name.endswith(".toml")
+            with open(config_path, encoding="utf-8") as handle:
+                config = handle.read()
+        except OSError as exc:
+            errors.append(".codex/config.toml: cannot verify Codex topology: {}".format(exc))
+            config = ""
+        if config and not re.search(r"(?m)^max_depth\s*=\s*1\s*$", config):
+            errors.append(".codex/config.toml: Codex max_depth must be 1")
+        if config and not re.search(r"(?m)^max_threads\s*=\s*4\s*$", config):
+            errors.append(".codex/config.toml: Codex max_threads must be 4")
+        if config and not re.search(r"(?m)^multi_agent_v2\s*=\s*false\s*$", config):
+            errors.append(".codex/config.toml: Codex multi_agent_v2 must be disabled")
+        if "[agents.orchestrator]" in config:
+            errors.append(".codex/config.toml: root Codex must not configure an orchestrator subagent")
+
+        legacy_templates = os.path.join(ROOT, ".codex", "templates", "research")
+        if os.path.exists(legacy_templates):
+            errors.append(".codex/templates/research: legacy Codex templates must not ship")
+
+        for preset in ("quality", "balanced", "fast"):
+            directory = os.path.join(ROOT, ".codex", "fleets", preset)
+            try:
+                actual = {
+                    os.path.splitext(name)[0] for name in os.listdir(directory)
+                    if name.endswith(".toml")
+                }
+            except OSError:
+                actual = set()
+            if actual != CODEX_SPECIALISTS:
+                errors.append(
+                    ".codex/fleets/{}: expected only eight Codex specialists; found {}".format(
+                        preset, ", ".join(sorted(actual)) or "none"
+                    )
+                )
+        prompts = os.path.join(ROOT, ".codex", "prompts", "roles")
+        try:
+            prompt_roles = {
+                os.path.splitext(name)[0] for name in os.listdir(prompts) if name.endswith(".md")
             }
         except OSError:
-            actual = set()
-        if actual != CODEX_SPECIALISTS:
+            prompt_roles = set()
+        if prompt_roles != CODEX_SPECIALISTS:
             errors.append(
-                ".codex/fleets/{}: expected only eight Codex specialists; found {}".format(
-                    preset, ", ".join(sorted(actual)) or "none"
+                ".codex/prompts/roles: expected only eight Codex specialist specs; found {}".format(
+                    ", ".join(sorted(prompt_roles)) or "none"
                 )
             )
-    prompts = os.path.join(ROOT, ".codex", "prompts", "roles")
-    try:
-        prompt_roles = {
-            os.path.splitext(name)[0] for name in os.listdir(prompts) if name.endswith(".md")
-        }
-    except OSError:
-        prompt_roles = set()
-    if prompt_roles != CODEX_SPECIALISTS:
-        errors.append(
-            ".codex/prompts/roles: expected only eight Codex specialist specs; found {}".format(
-                ", ".join(sorted(prompt_roles)) or "none"
-            )
+        conductor_seed = os.path.join(
+            ROOT, ".codex", "templates", "memory", "conductor", "MEMORY.md"
         )
-    conductor_seed = os.path.join(
-        ROOT, ".codex", "templates", "memory", "conductor", "MEMORY.md"
-    )
-    if not os.path.isfile(conductor_seed):
-        errors.append(".codex/templates/memory/conductor/MEMORY.md: missing conductor seed")
+        if not os.path.isfile(conductor_seed):
+            errors.append(".codex/templates/memory/conductor/MEMORY.md: missing conductor seed")
     return errors
 
 
 def main():
-    errors = provider_isolation_errors()
+    errors = provider_isolation_errors(os.environ.get("ORCHESTRATION_BACKEND"))
     for error in errors:
         print("FAIL " + error)
     if errors:

@@ -36,9 +36,13 @@ CODEX_MCP_SERVERS = {
     },
 }
 PRESETS = {
-    "quality": ("gpt-5.6-sol", "xhigh"),
-    "balanced": ("gpt-5.6-sol", "high"),
-    "fast": ("gpt-5.6-terra", "medium"),
+    # Codex 0.144.x tags Sol/Terra as multi-agent V2 models. Their reserved V2
+    # spawn schema omits agent_type, so they cannot be the role-routing root.
+    # Luna is explicitly V1-capable; specialists may still use Sol/Terra because
+    # max_depth=1 prevents them from creating another delegation layer.
+    "quality": ("gpt-5.6-luna", "xhigh"),
+    "balanced": ("gpt-5.6-luna", "high"),
+    "fast": ("gpt-5.6-luna", "medium"),
 }
 EFFORTS = {"minimal", "low", "medium", "high", "xhigh", "max", "ultra"}
 
@@ -155,7 +159,14 @@ def codex_catalog():
     except ValueError as exc:
         raise LaunchError("Installed Codex returned an invalid model catalog: {}".format(exc))
     return {
-        item.get("slug"): {level.get("effort") for level in item.get("supported_reasoning_levels", [])}
+        item.get("slug"): {
+            "efforts": {
+                level.get("effort")
+                for level in item.get("supported_reasoning_levels", [])
+                if level.get("effort")
+            },
+            "multi_agent_version": item.get("multi_agent_version"),
+        }
         for item in models if item.get("slug")
     }
 
@@ -177,8 +188,21 @@ def validate_codex(agent_files, root_model, root_effort):
         ["codex", "features", "list"], cwd=ROOT, stdout=subprocess.PIPE,
         stderr=subprocess.PIPE, text=True, check=False,
     )
-    if features.returncode or not all(name in features.stdout for name in ("multi_agent", "hooks")):
-        raise LaunchError("This Codex installation does not expose multi_agent and hooks; update Codex.")
+    enabled = {
+        match.group(1): match.group(2) == "true"
+        for match in re.finditer(r"(?m)^(\S+)\s+.*\s+(true|false)\s*$", features.stdout)
+    }
+    required_features = ("multi_agent", "hooks")
+    if features.returncode or not all(enabled.get(name) for name in required_features):
+        raise LaunchError(
+            "This Codex installation must enable multi_agent and hooks; "
+            "update Codex or inspect .codex/config.toml."
+        )
+    if enabled.get("multi_agent_v2"):
+        raise LaunchError(
+            "Codex multi_agent_v2 must remain disabled: its reserved spawn schema cannot "
+            "currently expose agent_type reliably. Use stable multi_agent_v1."
+        )
     catalog = codex_catalog()
     requested = [("root", root_model, root_effort)]
     requested.extend((role,) + model_from_agent_file(path) for role, path in agent_files.items())
@@ -186,8 +210,15 @@ def validate_codex(agent_files, root_model, root_effort):
     for role, model, effort in requested:
         if model not in catalog:
             errors.append("{}: model {} is unavailable".format(role, model))
-        elif effort not in catalog[model]:
+        elif effort not in catalog[model]["efforts"]:
             errors.append("{}: {} does not support effort {}".format(role, model, effort))
+    if root_model in catalog:
+        routing_version = catalog[root_model]["multi_agent_version"]
+        if routing_version not in (None, "v1"):
+            errors.append(
+                "root: {} forces multi-agent {}; choose a V1-compatible conductor model "
+                "so spawn exposes agent_type".format(root_model, routing_version)
+            )
     if errors:
         raise LaunchError("Invalid Codex fleet:\n  - " + "\n  - ".join(errors))
 
@@ -550,6 +581,7 @@ def doctor(backend):
             structural = (
                 re.search(r"(?m)^max_depth\s*=\s*1\s*$", config_text) is not None
                 and re.search(r"(?m)^max_threads\s*=\s*4\s*$", config_text) is not None
+                and re.search(r"(?m)^multi_agent_v2\s*=\s*false\s*$", config_text) is not None
                 and "[agents.orchestrator]" not in config_text
                 and all(os.path.isfile(agent_path(preset_name, role))
                         for preset_name in PRESETS for role in CODEX_ROLES)
@@ -604,6 +636,7 @@ def doctor(backend):
     isolation = subprocess.run(
         [sys.executable, os.path.join(ROOT, ".orchestration", "isolation.py")],
         cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False,
+        env=dict(os.environ, ORCHESTRATION_BACKEND=backend),
     )
     if isolation.returncode:
         detail = isolation.stdout.strip() or isolation.stderr.strip() or "unknown failure"
@@ -692,8 +725,9 @@ def build_codex(preset, permissions, overrides, allow_bypass, do_preflight):
         validate_codex(agent_files, root_model, root_effort)
         validate_codex_mcp()
     command = [
-        "codex", "-C", ROOT, "--model", root_model,
+        "codex", "--strict-config", "-C", ROOT, "--model", root_model,
         "-c", 'model_reasoning_effort="{}"'.format(root_effort),
+        "-c", "features.multi_agent_v2=false",
     ]
     for role in CODEX_ROLES:
         command.extend(["-c", 'agents.{}.config_file="{}"'.format(role, agent_files[role])])
@@ -850,9 +884,8 @@ def save_config(config):
 def enforce_backend_lock(saved, selected):
     """Fail closed when a checkout is already bound to another provider.
 
-    Applied to `init` only: creating a second provider's state in one checkout is the
-    real mixing risk. Launch/doctor/configure use warn_backend_mismatch instead — an
-    explicit cross-backend choice proceeds with a caution (configure is the rebind path)."""
+    Applied to initialization, launch (including dry-run), and configuration. Doctor may
+    inspect another provider without launching it, but a bound checkout is never rebound."""
     locked = saved.get("backend")
     if locked and locked != selected:
         raise LaunchError(
@@ -862,18 +895,17 @@ def enforce_backend_lock(saved, selected):
 
 
 def warn_backend_mismatch(saved, selected):
-    """Cross-backend launch/diagnose/configure is an explicit choice: warn, never block.
+    """Allow a read-only cross-backend doctor inspection with an explicit warning.
 
     The bound provider owns the root research workspace (report/, model/, experiments/,
     ...), so the caution is about shared working files — state creation stays refused
-    in enforce_backend_lock (init)."""
+    in enforce_backend_lock (init/launch/configure)."""
     locked = saved.get("backend")
     if locked and locked != selected:
         print(
-            "orchestrate: note — this checkout is bound to '{}'; using '{}'.\n"
-            "  The bound provider owns the root research workspace; avoid running both\n"
-            "  providers against the same working files. './orchestrate init {}' stays\n"
-            "  refused here — use a separate clone/worktree for a second provider's state.".format(
+            "orchestrate: note — this checkout is bound to '{}'; diagnosing '{}'.\n"
+            "  This does not authorize launch or initialization. Use a separate clone/worktree\n"
+            "  for a second provider's state.".format(
                 locked, selected, selected),
             file=sys.stderr,
         )
@@ -962,7 +994,7 @@ def main(argv=None):
     if args.configure:
         selected_backend = choose(
             "Select orchestration backend:", ["codex", "claude"], saved.get("backend", "codex"))
-        warn_backend_mismatch(saved, selected_backend)
+        enforce_backend_lock(saved, selected_backend)
         saved = {
             "backend": selected_backend,
             "permissions": choose("Select permission posture:", ["safe", "bypass"], saved.get("permissions", "safe")),
@@ -976,7 +1008,7 @@ def main(argv=None):
     backend = args.command or saved.get("backend")
     if not backend:
         backend = choose("Select orchestration backend:", ["codex", "claude"], "codex")
-    warn_backend_mismatch(saved, backend)
+    enforce_backend_lock(saved, backend)
     preset = args.preset or saved.get("preset", "quality")
     permissions = args.permissions or saved.get("permissions", "safe")
     overrides = dict(saved.get("role_overrides", {}))
@@ -1002,11 +1034,13 @@ def main(argv=None):
             backend, preset, permissions, topology, identity
         ), flush=True,
     )
-    os.chdir(ROOT)
-    os.execvpe(command[0], command, load_backend_env(
-        backend, preset, permissions, audit_run=audit_run
-    ))
-    return 0
+    environment = load_backend_env(backend, preset, permissions, audit_run=audit_run)
+    proc = subprocess.run(command, cwd=ROOT, env=environment, check=False)
+    if audit_run:
+        codex_audit([
+            "end", "--run-id", audit_run["run_id"], "--exit-code", str(proc.returncode)
+        ])
+    return proc.returncode
 
 
 if __name__ == "__main__":

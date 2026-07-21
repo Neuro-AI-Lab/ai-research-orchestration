@@ -43,7 +43,7 @@ def complete_fixture(tmp_path):
     _event, delivered = AUDIT.bind_subagent_start(
         {
             "session_id": "session-root", "agent_id": "agent-123", "role": "critic",
-            "runtime_source": "native_hook",
+            "model": "model-native", "runtime_source": "native_hook",
         },
         run_id=run_id,
         root=tmp_path,
@@ -65,12 +65,7 @@ def complete_fixture(tmp_path):
         run_id=run_id,
         root=tmp_path,
     )
-    AUDIT.append_event(
-        "session_stopped",
-        {"session_id": "session-root", "runtime_source": "native_hook"},
-        run_id=run_id,
-        root=tmp_path,
-    )
+    AUDIT.finish_run(0, run_id=run_id, root=tmp_path)
     return run_id
 
 
@@ -83,6 +78,7 @@ def test_complete_native_run_audits_cleanly(tmp_path):
     assert report["unverified_claims"] == 0
     assert report["specialists"] == [{
         "role": "critic",
+        "model": "model-native",
         "agent_id": "agent-123",
         "parent_session_id": "session-root",
         "brief": "delivered",
@@ -129,9 +125,7 @@ def test_non_root_dispatch_and_mismatched_result_role_are_unverified(tmp_path):
          "result_contract": "valid", "result_status": "complete"},
         run_id=run_id, root=tmp_path,
     )
-    AUDIT.append_event(
-        "session_stopped", {"session_id": "root"}, run_id=run_id, root=tmp_path
-    )
+    AUDIT.finish_run(0, run_id=run_id, root=tmp_path)
     report = AUDIT.verify_run(run_id, root=tmp_path)
     assert report["conductor_orchestrator"] == "unverified"
     assert any("not dispatched directly" in item for item in report["verification_errors"])
@@ -274,6 +268,7 @@ def test_native_hook_payload_binds_identity_and_result(tmp_path):
         text=True, capture_output=True, env=env, check=False,
     )
     assert closed.returncode == 0, closed.stderr
+    AUDIT.finish_run(0, run_id=run_id, root=tmp_path)
     report = AUDIT.verify_run(run_id, root=tmp_path)
     assert report["unverified_claims"] == 0
     assert report["specialists"][0]["agent_id"] == "agent-native-1"
@@ -348,8 +343,51 @@ def test_stale_handoff_stop_is_nonblocking_and_audited(tmp_path):
     first = stop(False)
     assert first.returncode == 0
     assert first.stdout == ""
-    assert AUDIT.verify_run(run_id, root=tmp_path)["status"] == "completed"
+    assert AUDIT.verify_run(run_id, root=tmp_path)["status"] == "running"
     ledger = (
         tmp_path / ".codex" / "runs" / run_id / "events.jsonl"
     ).read_text(encoding="utf-8")
     assert '"continuity_current":false' in ledger
+    assert '"event":"turn_stopped"' in ledger
+    assert '"event":"session_ended"' not in ledger
+    AUDIT.finish_run(0, run_id=run_id, root=tmp_path)
+    assert AUDIT.verify_run(run_id, root=tmp_path)["status"] == "completed"
+
+
+def test_failed_process_exit_is_ended_but_not_verified_complete(tmp_path):
+    created = AUDIT.create_run("quality", "safe", root=tmp_path)
+    run_id = created["run_id"]
+    AUDIT.append_event(
+        "session_started", {"session_id": "root-failed"}, run_id=run_id, root=tmp_path
+    )
+    AUDIT.finish_run(7, run_id=run_id, root=tmp_path)
+    report = AUDIT.verify_run(run_id, root=tmp_path)
+    assert report["status"] == "failed"
+    assert report["completed"] is False
+    assert any("exited with code 7" in item for item in report["verification_errors"])
+    with pytest.raises(AUDIT.AuditError, match="ended run"):
+        AUDIT.append_event(
+            "turn_stopped", {"session_id": "root-failed"}, run_id=run_id, root=tmp_path
+        )
+
+
+def test_session_brief_hook_emits_valid_start_json(tmp_path):
+    hook = ROOT / ".codex" / "hooks" / "session_brief.py"
+    env = dict(os.environ, CODEX_PROJECT_DIR=str(tmp_path))
+    proc = subprocess.run(
+        [sys.executable, str(hook)],
+        input=json.dumps({"hook_event_name": "SessionStart"}),
+        text=True, capture_output=True, env=env, check=False,
+    )
+    assert proc.returncode == 0, proc.stderr
+    output = json.loads(proc.stdout)
+    specific = output["hookSpecificOutput"]
+    assert specific["hookEventName"] == "SessionStart"
+    assert "Automatic continuity brief" in specific["additionalContext"]
+
+    child = subprocess.run(
+        [sys.executable, str(hook)],
+        input=json.dumps({"hook_event_name": "SubagentStart"}),
+        text=True, capture_output=True, env=env, check=False,
+    )
+    assert json.loads(child.stdout)["hookSpecificOutput"]["hookEventName"] == "SubagentStart"

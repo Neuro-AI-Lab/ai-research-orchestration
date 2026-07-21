@@ -36,6 +36,13 @@ Before every spawn, register the exact BRIEF by sending it on stdin to the audit
 unregistered spawn is instructed to stop and remains unverified. Use `./orchestrate audit latest` to
 inspect native identities, RESULT verdicts, research-gate decisions, and the hash chain.
 
+For every specialist spawn, use the stable `multi_agent_v1.spawn_agent` tool, set `agent_type` to the
+exact configured ROLE, and leave `fork_context=false`. A full-history fork inherits the root
+role/model and is incompatible with a specialist override. If the visible spawn tool does not offer
+`agent_type`, stop and report an incompatible launch instead of relabeling a `default` child.
+The launcher must reject a root model whose installed metadata forces V2 routing; V2-tagged models
+may still run as depth-1 specialists because they cannot create another delegation layer.
+
 The researcher-facing workspace is `plan/`, `report/`, `data/`, `model/`, `experiments/`, `analysis/`,
 `functionals/`, and `utils/`. Codex uses `plan/PRD.md`, `plan/CHECKLIST.md`, and the four live research
 documents `report/discussion.md`, `report/issue.md`, `report/result.md`, and `report/version.md`.

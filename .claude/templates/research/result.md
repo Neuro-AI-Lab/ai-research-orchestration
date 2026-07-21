@@ -8,4 +8,4 @@ Current-version experiment results and grounded reports.
 |---|---|---|---|---|
 | | | | | |
 
-<!-- EXP artifacts use experiments/claude/EXP-NNN/. -->
+<!-- EXP artifacts use experiments/runs/EXP-NNN/. -->

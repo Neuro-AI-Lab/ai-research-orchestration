@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """PreToolUse hook: mechanical enforcement of the experiment gates.
 
-Blocks Bash commands that launch experiments (run.sh / evaluate.sh / python models/*.py)
+Blocks Bash commands that launch experiments (run.sh / evaluate.sh / python model/*.py)
 while any mandatory gate is unmet:
-  - open critical BUG in .claude/research/error.md          (QA gate)
-  - open blocking REV in .claude/research/discussion.md     (critic gate)
-  - no passed critic REV in .claude/research/discussion.md  (positive critic attestation)
-  - no passed QA entry in .claude/research/discussion.md    (positive QA attestation)
+  - open critical BUG in report/error.md          (QA gate)
+  - open blocking REV in report/discussion.md     (critic gate)
+  - no passed critic REV in report/discussion.md  (positive critic attestation)
+  - no passed QA entry in report/discussion.md    (positive QA attestation)
   - no leakage-audited DATASET entry        (positive data attestation)
 
 Documented bypass (mirrors CLAUDE.md "When to break the rules"): write an ADR in
-.claude/research/discussion.md naming the skipped rule, reason, and rollback plan, then prefix the
+report/discussion.md naming the skipped rule, reason, and rollback plan, then prefix the
 command with GATE_OVERRIDE=ADR-NNN. The hook verifies the ADR exists and carries the mandatory
 Context, Decision, Consequences, and Rollback fields.
 
@@ -21,7 +21,7 @@ import os
 import re
 import sys
 
-# Match run.sh / evaluate.sh / python models/*.py only in COMMAND-WORD position within a
+# Match run.sh / evaluate.sh / python model/*.py only in COMMAND-WORD position within a
 # shell command *segment* — never as a substring anywhere in the text. A segment is what
 # runs between shell control operators (;, &, &&, |, ||, (, )) or at the very start of the
 # command. Within a segment, the command word may be preceded by env-var assignments
@@ -38,7 +38,7 @@ _ENV_ASSIGN = r'(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*'
 _INTERPRETER = r'(?:(?:bash|sh|zsh|setsid|nohup|exec|source)\s+|\.\s+)?'
 _PATH_PREFIX = r'(?:\./)?(?:[\w.-]+/)*'
 _SCRIPT_LAUNCH = re.compile(r'^' + _ENV_ASSIGN + _INTERPRETER + _PATH_PREFIX + r'(run|evaluate)\.sh\b')
-_PYTHON_LAUNCH = re.compile(r'^' + _ENV_ASSIGN + r'python[0-9.]*\s+\S*models/\S+\.py')
+_PYTHON_LAUNCH = re.compile(r'^' + _ENV_ASSIGN + r'python[0-9.]*\s+\S*model/\S+\.py')
 
 # Heredoc start marker: `<<WORD`, `<<-WORD` (indented terminator), `<<'WORD'`/`<<"WORD"`
 # (quoted, suppresses expansion) or `<<\WORD` (backslash-escaped, same effect). The captured
@@ -288,8 +288,8 @@ def main():
         except OSError:
             return ''
 
-    discussion = read('.claude/research/discussion.md')
-    error = read('.claude/research/error.md')
+    discussion = read('report/discussion.md')
+    error = read('report/error.md')
 
     # An override applies only to its own launch segment. Every launch segment must cite
     # a valid ADR for the whole command to bypass the normal gates; missing or incomplete
@@ -305,7 +305,7 @@ def main():
         if not adr_blocks:
             print(
                 f"GATE: override cited {override_adr}, but no such ADR exists in "
-                ".claude/research/discussion.md. Write the ADR (rule skipped, reason, rollback plan) first.",
+                "report/discussion.md. Write the ADR (rule skipped, reason, rollback plan) first.",
                 file=sys.stderr,
             )
             return 2
@@ -326,28 +326,28 @@ def main():
         if (re.match(r'## \[BUG-\d+\]', block)
                 and re.search(r'(?mi)^\*{0,2}Severity:\*{0,2}\s*critical', block)
                 and last_status(block) == 'open'):
-            problems.append(f'open critical {entry_id(block)} in .claude/research/error.md')
+            problems.append(f'open critical {entry_id(block)} in report/error.md')
     for block in entry_blocks(discussion):
         if (re.match(r'## \[REV-\d+\]', block)
                 and re.search(r'(?mi)^\*{0,2}Severity:\*{0,2}\s*blocking', block)
                 and last_status(block) == 'open'):
-            problems.append(f'open blocking {entry_id(block)} in .claude/research/discussion.md')
+            problems.append(f'open blocking {entry_id(block)} in report/discussion.md')
     blocks = entry_blocks(discussion)
     dataset_blocks = [block for block in blocks if re.match(r'## \[DATASET-\d+\]', block)]
     critic_blocks = [block for block in blocks if re.match(r'## \[REV-\d+\]', block)]
     qa_blocks = [block for block in blocks if re.match(r'## \[QA-\d+\]', block)]
     if not any(field_passed(block, 'Leakage audit') for block in dataset_blocks):
-        problems.append('no DATASET entry with **Leakage audit:** passed in .claude/research/discussion.md')
+        problems.append('no DATASET entry with **Leakage audit:** passed in report/discussion.md')
     if not any(field_passed(block, 'Gate') for block in critic_blocks):
-        problems.append('no critic REV entry with **Gate:** passed in .claude/research/discussion.md')
+        problems.append('no critic REV entry with **Gate:** passed in report/discussion.md')
     if not any(field_passed(block, 'Gate') for block in qa_blocks):
-        problems.append('no QA entry with **Gate:** passed in .claude/research/discussion.md')
+        problems.append('no QA entry with **Gate:** passed in report/discussion.md')
 
     if problems:
         print(
             'GATE BLOCKED - experiment launch stopped by the mechanical gate '
             '(.claude/hooks/experiment_gate.py):\n  - ' + '\n  - '.join(problems) +
-            '\nResolve the items above, or record a bypass ADR in .claude/research/discussion.md '
+            '\nResolve the items above, or record a bypass ADR in report/discussion.md '
             '(rule skipped, reason, rollback plan) and re-run the command with '
             'GATE_OVERRIDE=ADR-NNN prefixed.',
             file=sys.stderr,

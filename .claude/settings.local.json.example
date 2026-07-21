@@ -1,5 +1,5 @@
 {
-  "_comment": "SETUP: copy this file to .claude/settings.local.json and fill in your own values. That file is gitignored — never commit real tokens. Full guide: SETUP.md. Everything here is OPTIONAL; the core research pipeline runs with none of it. Add a key only when you want the feature it unlocks. Leave a value as an empty string to disable it.",
+  "_comment": "Copy this file to .claude/settings.local.json and fill in your own values. That file is gitignored — never commit real tokens. Full guide: docs/orchestration/CLAUDE.md. Everything here is optional; the core research pipeline runs with none of it. Add a key only when you want the feature it unlocks. Leave a value as an empty string to disable it.",
 
   "env": {
     "_lit_contact_email": "OPTIONAL. Your email — joins OpenAlex's faster 'polite' API pool for literature search. No signup.",
@@ -8,17 +8,17 @@
     "_s2_api_key": "OPTIONAL. Semantic Scholar API key (https://www.semanticscholar.org/product/api). Lifts literature-search rate limits. Works without it via the shared pool.",
     "S2_API_KEY": "",
 
-    "_zotero": "OPTIONAL (recommended). Connect your Zotero library. Get both at https://www.zotero.org/settings/keys — enable write access for save-back. For a GROUP library set ZOTERO_GROUP_ID (takes precedence over USER_ID). Guide: .claude/ZOTERO.md",
+    "_zotero": "OPTIONAL (recommended). Connect your Zotero library. Get both at https://www.zotero.org/settings/keys — enable write access for save-back. For a GROUP library set ZOTERO_GROUP_ID (takes precedence over USER_ID). Guide: docs/orchestration/CLAUDE.md",
     "ZOTERO_API_KEY": "",
     "ZOTERO_USER_ID": "",
     "ZOTERO_GROUP_ID": "",
     "_zotero_local": "OPTIONAL alternative to the API key above. Set to \"1\" if Zotero desktop runs on this machine — uses its local API (http://localhost:23119), no key needed.",
     "ZOTERO_LOCAL": "",
 
-    "_overleaf": "OPTIONAL. Overleaf git token for paper collaboration (Account Settings -> Git Integration; premium feature). Guide: .claude/OVERLEAF.md",
+    "_overleaf": "OPTIONAL. Overleaf git token for paper collaboration (Account Settings -> Git Integration; premium feature). Guide: docs/orchestration/CLAUDE.md",
     "OVERLEAF_GIT_TOKEN": "",
 
-    "_github_token": "OPTIONAL. Only if you want agents to push this repo / open PRs on your behalf. A fine-grained PAT scoped to the single repo (Contents: read/write) is safest.",
+    "_github_token": "OPTIONAL. A token enables GitHub operations but never authorizes them. Every branch, commit, push, PR, or merge still requires an explicit user request. A fine-grained PAT scoped to one repository is safest.",
     "GITHUB_TOKEN": ""
   }
 }

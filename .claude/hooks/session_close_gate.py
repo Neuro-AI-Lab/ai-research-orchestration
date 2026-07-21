@@ -5,7 +5,7 @@ Two-layer continuity contract:
   - agent layer:  .claude/state/handoff.json  (structured; consumed by the SessionStart brief)
   - human layer:  STATE / doc entries in the root .md docs (readable monitoring)
 
-If any Claude research doc or experiments/claude/ status changed after handoff.json was last updated, the first
+If any Claude research doc or experiments/runs/ status changed after handoff.json was last updated, the first
 stop attempt is blocked with instructions to update the hand-off (and a STATE entry when research
 state changed). `stop_hook_active` guards against infinite loops: the retry is always allowed.
 Output protocol: JSON {"decision":"block","reason":...} on stdout blocks; exit 0 silently allows.
@@ -14,7 +14,7 @@ import json
 import os
 import sys
 
-WATCH = ['.claude/research/discussion.md', '.claude/research/error.md', '.claude/research/result.md', '.claude/research/version.md']
+WATCH = ['report/discussion.md', 'report/error.md', 'report/result.md', 'report/version.md']
 
 
 def newest_mtime(root):
@@ -58,7 +58,7 @@ def main():
             '(1-2 sentences), open_items[], next_actions[], in_flight_runs[] (EXP-IDs still '
             'running), doc_pointers{} (latest STATE/EXP/REV ids); '
             '(2) if research state changed this session, ensure a STATE-YYYY-MM-DD entry exists '
-            'in .claude/research/discussion.md (the active root/dedicated orchestrator owns coordination state); '
+            'in report/discussion.md (the active root/dedicated orchestrator owns coordination state); '
             '(3) then stop. Keep the hand-off dense — the next session reads it cold.'
         ),
     }))

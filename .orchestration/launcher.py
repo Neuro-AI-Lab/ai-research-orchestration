@@ -334,7 +334,8 @@ def initialize_project(backend):
             shutil.copyfile(source_path, destination_path)
             print("created " + destination)
     for name in ("discussion.md", "result.md", "error.md", "version.md"):
-        relative = ".{}/research/{}".format(backend, name)
+        relative = ("report/{}".format(name) if backend == "claude"
+                    else ".{}/research/{}".format(backend, name))
         destination = os.path.join(ROOT, relative)
         if not os.path.exists(destination):
             source = os.path.join(ROOT, ".{}".format(backend), "templates", "research", name)
@@ -357,10 +358,24 @@ def initialize_project(backend):
             shutil.copyfile(source, destination)
             print("created " + relative)
 
-    for name in (
-            "data", "models", "evaluation", "papers/notes/{}".format(backend),
-            "experiments/{}".format(backend), "analysis/{}".format(backend),
-            ".{}/runs".format(backend)):
+    if backend == "claude":
+        # Research workspace: development-only (plan/report/data) and
+        # develop-and-release (model/experiments/analysis/functionals/utils) dirs.
+        workspace = ("plan", "report", "data", "model", "experiments/runs",
+                     "analysis", "functionals", "utils", ".claude/runs")
+        for name, template in (("plan/PRD.md", "PRD.md"),
+                               ("plan/CHECKLIST.md", "CHECKLIST.md")):
+            destination = os.path.join(ROOT, name)
+            source = os.path.join(ROOT, ".claude", "templates", "plan", template)
+            if not os.path.exists(destination) and os.path.isfile(source):
+                os.makedirs(os.path.dirname(destination), exist_ok=True)
+                shutil.copyfile(source, destination)
+                print("created " + name)
+    else:
+        workspace = ("data", "models", "evaluation", "papers/notes/{}".format(backend),
+                     "experiments/{}".format(backend), "analysis/{}".format(backend),
+                     ".{}/runs".format(backend))
+    for name in workspace:
         os.makedirs(os.path.join(ROOT, name), exist_ok=True)
     print(
         "{} initialization complete. Run './orchestrate doctor {}', then "
@@ -380,21 +395,25 @@ def doctor(backend):
 
     provider_required = {
         "codex": (
-            "AGENTS.md", ".codex/README.md", ".codex/ORCHESTRATION.md",
+            "AGENTS.md", ".codex/ORCHESTRATION.md",
             ".codex/config.toml", ".codex/hooks/audit_event.py",
             ".codex/scripts/orchestration_audit.py", ".codex/settings.local.json",
             ".codex/state/handoff.json", ".codex/memory/conductor/MEMORY.md",
         ),
         "claude": (
-            "CLAUDE.md", ".mcp.json", ".claude/README.md", ".claude/settings.json",
+            "CLAUDE.md", ".mcp.json", ".claude/settings.json",
+            ".claude/templates/plan/PRD.md", ".claude/templates/plan/CHECKLIST.md",
             ".claude/settings.local.json", ".claude/state/handoff.json",
             ".claude/agent-memory/orchestrator/MEMORY.md",
         ),
     }
     required = provider_required[backend] + tuple(
-        ".{}/research/{}".format(backend, name)
+        ("report/{}".format(name) if backend == "claude"
+         else ".{}/research/{}".format(backend, name))
         for name in ("discussion.md", "result.md", "error.md", "version.md")
     )
+    if backend == "claude":
+        required += ("plan/PRD.md", "plan/CHECKLIST.md")
     for path in required:
         if os.path.isfile(os.path.join(ROOT, path)):
             report("PASS", path, "present")
@@ -530,20 +549,6 @@ def doctor(backend):
         backend, len(failures), len(warnings)
     ))
     return 1 if failures else 0
-
-
-def run_demo():
-    commands = (
-        [sys.executable, "examples/toy-sentiment/verify_split.py"],
-        [sys.executable, "examples/toy-sentiment/run_example.py"],
-    )
-    for command in commands:
-        print("+ " + shlex.join(command), flush=True)
-        proc = subprocess.run(command, cwd=ROOT, check=False)
-        if proc.returncode:
-            return proc.returncode
-    print("Demo complete: split verification and end-to-end run passed.")
-    return 0
 
 
 def release_check():
@@ -768,17 +773,16 @@ def save_config(config):
 def enforce_backend_lock(saved, selected):
     """Warn (not refuse) when launching the non-default backend from this checkout.
 
-    Provider research state is already isolated per plane (.claude/ vs .codex/), so a
-    cross-backend launch is a supported explicit choice; the warning exists because the
-    research-code surfaces (models/, evaluation/, data/, run.sh) are shared between
-    planes. Bare `./orchestrate` still launches the saved default; change the default
-    with `./orchestrate --configure`."""
+    Provider research state is isolated, so a cross-backend launch is a supported explicit
+    choice; the warning remains because data, evaluation, and entry-point paths are shared.
+    Bare `./orchestrate` still launches the saved default; change the default with
+    `./orchestrate --configure`."""
     locked = saved.get("backend")
     if locked and locked != selected:
         print(
             "orchestrate: note — this checkout's default backend is '{}'; launching '{}'.\n"
-            "  Research state stays per-provider, but models/, evaluation/, data/, and the\n"
-            "  run entry points are shared: avoid concurrent provider runs on the same files.\n"
+            "  Research state stays per-provider, but data, evaluation, and entry points\n"
+            "  are shared: avoid concurrent provider runs on the same files.\n"
             "  Change the default with './orchestrate --configure'.".format(locked, selected),
             file=sys.stderr,
         )
@@ -790,7 +794,7 @@ def parser():
     )
     result.add_argument(
         "command", nargs="?",
-        choices=("codex", "claude", "init", "doctor", "demo", "release-check", "audit", "runs"),
+        choices=("codex", "claude", "init", "doctor", "release-check", "audit", "runs"),
     )
     result.add_argument(
         "target", nargs="?",
@@ -838,8 +842,6 @@ def main(argv=None):
             raise LaunchError("doctor backend must be codex or claude")
         enforce_backend_lock(saved, backend)
         return doctor(backend)
-    if args.command == "demo":
-        return run_demo()
     if args.command == "release-check":
         return release_check()
     if args.command in ("audit", "runs"):

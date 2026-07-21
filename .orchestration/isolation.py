@@ -12,7 +12,8 @@ ROOT_STATE = ("discussion.md", "result.md", "error.md", "version.md", "CODEX.md"
 SURFACES = {
     "codex": (
         "AGENTS.md",
-        ".codex/README.md",
+        "docs/orchestration/CODEX.md",
+        "docs/orchestration/CODEX.ko.md",
         ".codex/ORCHESTRATION.md",
         ".codex/config.toml",
         ".codex/contracts",
@@ -25,7 +26,8 @@ SURFACES = {
     "claude": (
         "CLAUDE.md",
         ".mcp.json",
-        ".claude/README.md",
+        "docs/orchestration/CLAUDE.md",
+        "docs/orchestration/CLAUDE.ko.md",
         ".claude/settings.json",
         ".claude/agents",
         ".claude/fleets",
@@ -39,6 +41,8 @@ SURFACES = {
 FORBIDDEN = {
     "codex": re.compile(
         r"\.claude/|\.mcp\.json|\bCLAUDE\.md\b|"
+        r"(?<![A-Za-z0-9_./])(?:plan/(?:PRD|CHECKLIST)\.md|"
+        r"report/(?:discussion|result|error|version)\.md)|"
         r"\b(?:Claude|Anthropic|Sonnet|Opus|Fable|Haiku)\b|"
         r"\borchestrator-opus\b",
         re.IGNORECASE,
@@ -84,7 +88,7 @@ def provider_isolation_errors():
             errors.append("legacy shared control file exists at repository root: " + name)
 
     for surface in ("codex", "claude"):
-        expected_prefix = ".{}/research/".format(surface)
+        expected_prefix = "report/" if surface == "claude" else ".codex/research/"
         for relative, path in iter_files(surface):
             try:
                 with open(path, encoding="utf-8") as handle:
@@ -116,6 +120,8 @@ def provider_isolation_errors():
                     )
                 if relative.endswith("overleaf_sync.sh"):
                     continue
+                if surface != "codex":
+                    continue  # Claude uses the plain research-workspace dirs (report/, experiments/, analysis/)
                 for artifact in ARTIFACT_PATHS:
                     unscoped_artifact = re.search(
                         r"(?<![A-Za-z0-9_./-]){}/(?!{}(?:/|\b))".format(

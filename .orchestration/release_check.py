@@ -32,6 +32,7 @@ PUBLIC_DOCS = (
     "docs/orchestration/CODEX.md", "docs/orchestration/CODEX.ko.md",
     "docs/orchestration/CLAUDE.md", "docs/orchestration/CLAUDE.ko.md",
     "docs/orchestration/MAINTAINERS.md", "docs/orchestration/MAINTAINERS.ko.md",
+    "docs/orchestration/PROJECT_MAP.md", "docs/orchestration/PROJECT_MAP.ko.md",
 )
 PROVIDER_DOCS = {
     "codex": ("docs/orchestration/CODEX.md", "docs/orchestration/CODEX.ko.md"),
@@ -42,6 +43,7 @@ DOC_PAIRS = (
     ("docs/orchestration/CODEX.md", "docs/orchestration/CODEX.ko.md"),
     ("docs/orchestration/CLAUDE.md", "docs/orchestration/CLAUDE.ko.md"),
     ("docs/orchestration/MAINTAINERS.md", "docs/orchestration/MAINTAINERS.ko.md"),
+    ("docs/orchestration/PROJECT_MAP.md", "docs/orchestration/PROJECT_MAP.ko.md"),
 )
 LEGACY_PUBLIC_DOCS = (
     "SETUP.md", "SETUP.ko.md", "SECURITY.md", "SECURITY.ko.md", "CONTRIBUTING.md",
@@ -92,6 +94,31 @@ def candidate_files():
         return []
     return [name for name in proc.stdout.splitlines()
             if os.path.isfile(os.path.join(ROOT, name))]
+
+
+def map_patterns(project_map):
+    """Return exact paths and directory prefixes declared by the project map."""
+    exact = set()
+    prefixes = []
+
+    def add(paths):
+        for path in paths:
+            if path.endswith("/"):
+                prefixes.append(path)
+            else:
+                exact.add(path)
+
+    categories = project_map.get("categories", {})
+    for name in (
+        "research-workspace", "shared-orchestration-core", "template-dev-only",
+        "adaptation-support",
+    ):
+        add(categories.get(name, {}).get("paths", []))
+    providers = categories.get("provider-orchestration-core", {}).get("providers", {})
+    for spec in providers.values():
+        add(spec.get("paths", []))
+    exact.update(categories.get("adapt-and-rewrite", {}).get("files", {}))
+    return exact, tuple(prefixes)
 
 
 def main():
@@ -156,6 +183,16 @@ def main():
             fail(readme + " does not link every provider guide for its language")
         elif content:
             passed(readme + " routes users to both provider guides")
+
+    map_links = {
+        "README.md": "docs/orchestration/PROJECT_MAP.md",
+        "README.ko.md": "docs/orchestration/PROJECT_MAP.ko.md",
+    }
+    for readme, target in map_links.items():
+        if target not in public_content.get(readme, ""):
+            fail("{} does not link its language's project map".format(readme))
+        else:
+            passed("{} links its project map".format(readme))
 
     for english, korean in DOC_PAIRS:
         english_sections = len(re.findall(r"(?m)^## ", public_content.get(english, "")))
@@ -267,6 +304,30 @@ def main():
             passed("{} {} memory template is clean".format(backend, role))
 
     tracked = set(run("git", "ls-files").stdout.splitlines())
+    try:
+        with open(os.path.join(ROOT, ".orchestration", "project_map.json"),
+                  encoding="utf-8") as handle:
+            project_map = json.load(handle)
+        exact, prefixes = map_patterns(project_map)
+        uncategorized = sorted(
+            path for path in tracked
+            if path not in exact and not any(path.startswith(prefix) for prefix in prefixes)
+        )
+        if uncategorized:
+            fail("tracked paths missing from project map: " + ", ".join(uncategorized[:8]))
+        else:
+            passed("project map categorizes every tracked path")
+    except (OSError, ValueError) as exc:
+        fail("project map coverage check failed: {}".format(exc))
+
+    requirements_files = sorted(
+        path for path in tracked
+        if re.search(r"(?:^|/)requirements(?:[-_.][^/]*)?\.txt$", path)
+    )
+    if requirements_files != ["requirements.txt"]:
+        fail("dependency files are not consolidated: " + ", ".join(requirements_files))
+    else:
+        passed("requirements.txt is the single tracked requirements file")
     for private in (
         ".claude/settings.local.json", ".claude/state/handoff.json",
         ".codex/settings.local.json", ".codex/state/handoff.json",

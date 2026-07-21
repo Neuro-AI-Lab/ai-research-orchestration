@@ -17,6 +17,8 @@ provider 사용을 거부하므로 비교할 때는 별도 clone 또는 worktree
 | Claude Code | provider-owned lead-agent routing과 specialist | [Claude 가이드](docs/orchestration/CLAUDE.ko.md) |
 
 Maintainer와 release 절차는 [maintainer 가이드](docs/orchestration/MAINTAINERS.ko.md)에 있습니다.
+Template을 실제 project로 전환하기 전에 전체
+[project 경로 지도](docs/orchestration/PROJECT_MAP.ko.md)를 검토하세요.
 
 ## 빠른 시작
 
@@ -26,6 +28,7 @@ Maintainer와 release 절차는 [maintainer 가이드](docs/orchestration/MAINTA
 git clone <this-repo> my-research
 cd my-research
 ./orchestrate init codex       # 또는: ./orchestrate init claude
+./orchestrate adapt codex      # 변경 없이 project 전환 권고 검토
 ./orchestrate doctor codex     # 같은 provider 사용
 ./orchestrate codex --preset quality
 ```
@@ -53,9 +56,10 @@ provider 가이드의 one-specialist smoke test를 실행하고 반환된 runtim
 
 ## Agent team
 
-Lead session(또는 spawn 가능한 dedicated orchestrator) 하나와 research/build/ops specialist 여덟을
-합쳐 총 10개 role이 있습니다. 각 role은 소유 영역, 기본 model, 고정된 reasoning effort를 가집니다.
-아래 표는 system 기본값인 `quality` fleet 기준입니다.
+두 provider는 research/build/ops specialist 책임 여덟 개를 공유합니다. Codex는 root session 자체가
+conductor-orchestrator이며 lead agent를 spawn하지 않습니다. Claude는 specialist 여덟 개 외에 primary와
+fallback lead definition 두 개를 제공합니다. 아래 표는 Claude `quality` fleet이며 Codex의 별도
+quality pin은 `.codex/fleets/`에 있습니다.
 
 | Tier | Agent | Model | Effort | 소유 영역 |
 |---|---|---|---|---|
@@ -83,8 +87,8 @@ plane에도 동일한 role 구성이 있습니다(`.codex/prompts/roles/`, `.age
 
 1. **Critic**이 plan을 검토합니다(`REV` entry가 `Gate: passed`를 기록; blocking `REV`가 열려 있지
    않아야 함).
-2. **QA**가 code commit을 검증합니다(`QA` entry가 통과 판정을 기록; critical `BUG`가 열려 있지
-   않아야 함).
+2. **QA**가 실제 implementation state/diff를 검증합니다(`QA` entry가 통과 판정을 기록; critical
+   `BUG`가 열려 있지 않아야 함).
 3. **Data**가 split을 문서화하고 leakage checklist를 실행합니다(`DATASET` entry가 통과한 leakage
    audit을 기록).
 
@@ -97,10 +101,10 @@ rollback plan을 명시한 `ADR` entry를 작성한 뒤 실행 command 앞에 `G
 연구 state는 `report/` 아래 **version-gated 4-document record**로 관리됩니다. `result.md`,
 `discussion.md`, `issue.md`는 현재 version의 typed, append-only entry만 담고(`HYP`/`EXP`/`REV`/
 `QA`/`BUG`/`ADR`/... 상호 참조 포함), `version.md`는 milestone 경계마다 각 version의 내용을 흡수하는
-누적 archive입니다. Session continuity는 두 layer로 이루어집니다: `SessionStart` hook이 machine-
-readable hand-off(`.claude/state/handoff.json`), 열린 gate, 실행 중/orphan 상태 experiment를 새
-session context에 주입하고, `Stop` hook은 연구 문서가 변경됐는데 hand-off가 갱신되지 않았으면
-session 종료를 차단합니다.
+누적 archive입니다. Session continuity는 두 layer로 이루어집니다. 선택 provider의 `SessionStart`
+hook이 ignored machine-readable hand-off, 열린 gate, 실행 중/orphan experiment를 주입합니다.
+Claude는 close 시 hand-off freshness를 강제할 수 있습니다. Codex는 `Stop`을 turn boundary로 기록해
+process exit로 오인하지 않으며 launcher가 실제 Codex process exit를 audit ledger에 기록합니다.
 
 ## Research features
 
@@ -124,9 +128,7 @@ reproducibility` skill; `experiment-tracker`, `developer` |
 무효화되어 재실행되며 조용히 삭제되지 않음 | `data-leakage-audit` skill |
 | Adversarial review | `max` effort budget을 가진 전담 critic role이 실험 전 plan과 보고 전 result를
 검토 | `research-validity-review` skill |
-| 신규 project 적응 | `./orchestrate init`이 checkout을 machine-readable project map과 비교해 구체적인
-적응 checklist를 출력 | `.orchestration/project_map.json`; 사람용 가이드
-`docs/orchestration/PROJECT_MAP.md` |
+| 신규 project 적응 | `./orchestrate init`과 `./orchestrate adapt <provider>`가 checkout을 machine-readable project map과 비교해 구체적인 비변경 적응 checklist를 출력 | `.orchestration/project_map.json`; [사람용 가이드](docs/orchestration/PROJECT_MAP.ko.md) |
 
 ## 연구 workflow
 

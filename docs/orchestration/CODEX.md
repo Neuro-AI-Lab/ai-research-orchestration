@@ -47,21 +47,39 @@ provider comparison.
 provider path isolation. It does not prove that the installed native runtime bound a spawned agent to
 the requested custom role.
 
+The launcher deliberately uses a V1-compatible conductor model for the root session. The current
+bundled Codex catalog marks Sol/Terra as V2 routing models whose spawn schema does not expose
+`agent_type`; those models remain available to specialists at depth 1. Preflight rejects any future
+root preset whose installed model metadata would remove role selection. Re-run `doctor` and the smoke
+test after every Codex CLI or model-catalog update.
+
 ## Required first-run smoke test
 
 Do this before real research and after a Codex CLI upgrade, hook change, or fleet change:
 
 ```text
-Use this checkout's Codex quality fleet for a routing smoke test. Register one exact BRIEF for the qa
-role, spawn exactly one qa specialist, and ask it to perform a read-only check of AGENTS.md. Report the
-native agent ID, runtime role, model, BRIEF delivery status, RESULT contract status, and then run
-./orchestrate audit latest. Do not repair or hide an unconfigured/default role.
+Use this checkout's Codex quality fleet for one routing smoke test. Register and send the exact block
+below, then call multi_agent_v1.spawn_agent with agent_type="qa" and fork_context=false. Spawn exactly
+one specialist, wait for it, report the native agent ID and the configured model/effort exposed by the
+spawn schema, and run ./orchestrate audit latest. Do not repair or hide an unconfigured/default role.
+
+## BRIEF
+**Dispatch:** use this audit run ID plus -D001
+**Role:** qa
+**Objective:** Verify native role routing with a read-only policy check of AGENTS.md.
+**Deliverables:** One final RESULT reporting the two policy findings and runtime role/model metadata; no files.
+**Context:** Read AGENTS.md first and use the SubagentStart-injected runtime metadata and BRIEF.
+**Constraints:** No writes, Git mutations, network access, delegation, or remediation.
+**Done when:** Confirm the root-only single-hop topology and explicit Git authority boundary with evidence; return a valid RESULT.
+**Out of scope:** Repository changes, tests, broader review, research claims, and follow-on dispatches.
 ```
 
 Proceed only when all of the following are observed:
 
 - a concrete native agent ID;
 - the requested `qa` role rather than `default`, `null`, or `unconfigured:*`;
+- the configured QA model in the native event and the fixed reasoning effort in the spawn schema,
+  rather than inherited root settings;
 - `BRIEF delivered` and `RESULT valid`;
 - an intact event chain and `Unverified claims: 0`.
 
@@ -75,6 +93,9 @@ Do not claim that a fleet or role override was used, and do not begin a gated re
 | `quality` | hypotheses, critic/QA gates, result interpretation, paper review |
 | `balanced` | routine implementation and bounded exploration |
 | `fast` | broad first-pass discovery and mechanical work |
+
+All three presets use a V1-compatible Luna root at different reasoning levels; their specialist
+fleet files continue to select Luna, Terra, or Sol by role and workload.
 
 ```bash
 ./orchestrate codex --preset balanced
@@ -92,6 +113,8 @@ evidence separately.
 
 In safe mode, the runtime may request narrow approval to write provider-private state under
 `.codex/`. Review the exact path; do not approve unrelated or broad filesystem access.
+BRIEF registration specifically writes the active `.codex/runs/ORCH-.../` ledger; approving only that
+provider-private run path is expected during the smoke test.
 
 ## Workspace and file ownership
 
@@ -244,8 +267,9 @@ Important current boundaries:
   prove research-gate clearance or capture the complete reproducibility record. Verify gates before
   launch and retain the full provenance named above. For sweeps use
   `run_with_status.sh EXP-NNN --tag RUN-TAG -- <command>` and then `sweep_summary.py` on the EXP path.
-- `Status: completed` in a local audit must not be treated as process exit proof when later events are
-  present. Inspect the event order and unverified claims.
+- The launcher appends the final `session_ended` event only after the Codex process returns.
+  `Status: completed` therefore means exit code 0, but the run is trustworthy only when the event
+  chain is intact and `Unverified claims: 0`.
 
 ## Security and Git authority
 

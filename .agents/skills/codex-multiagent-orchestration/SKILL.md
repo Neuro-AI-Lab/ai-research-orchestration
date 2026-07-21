@@ -29,6 +29,11 @@ spawn with `python3 .codex/scripts/orchestration_audit.py brief --role ROLE --di
 stdin. The native start hook delivers it and binds the runtime-issued identifier; a dispatch exists
 only after that identifier returns. Never repair missing registration retroactively.
 
+Spawn through stable `multi_agent_v1.spawn_agent` with `agent_type=ROLE` and
+`fork_context=false`. A full-history fork inherits the root configuration and cannot prove
+specialist routing. If the tool schema hides `agent_type`, stop and report the incompatible launch
+instead of treating `default` as the requested role.
+
 Accept RESULT `complete` only when every criterion has evidence. Continue the same agent once for a
 contract repair, then mark the stage partial/blocked. Build dependent HANDOFF packets from the actual
 RESULT and verified artifacts. Reconcile disagreement with targeted evidence, never preference.

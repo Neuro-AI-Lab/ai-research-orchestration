@@ -46,21 +46,39 @@ backend 요청은 fail-closed로 거부합니다. Provider 비교마다 별도 c
 검사합니다. 설치된 native runtime이 spawn agent를 요청한 custom role에 실제로 연결했다는 증거는
 아닙니다.
 
+Launcher는 root session에 의도적으로 V1 호환 conductor model을 사용합니다. 현재 bundled Codex
+catalog에서 Sol/Terra는 spawn schema에 `agent_type`을 노출하지 않는 V2 routing model로 표시되지만,
+depth 1 specialist model로는 계속 사용할 수 있습니다. Preflight는 설치된 model metadata 때문에
+role 선택이 사라지는 root preset을 거부합니다. Codex CLI 또는 model catalog를 갱신할 때마다
+`doctor`와 smoke test를 다시 실행하세요.
+
 ## 필수 최초 smoke test
 
 실제 연구 전, Codex CLI upgrade 후, hook/fleet 변경 후에 실행합니다.
 
 ```text
-이 checkout의 Codex quality fleet으로 routing smoke test를 수행해. qa 역할의 exact BRIEF 하나를
-등록하고 qa specialist 정확히 하나만 spawn한 뒤 AGENTS.md를 읽기 전용으로 점검하게 해. Native
-agent ID, runtime role, model, BRIEF 전달 상태, RESULT 계약 상태를 보고하고 마지막에
-./orchestrate audit latest를 실행해. unconfigured/default role을 숨기거나 임의로 복구하지 마.
+이 checkout의 Codex quality fleet으로 routing smoke test를 한 번 수행해. 아래 block을 그대로
+등록하고 전달한 다음 multi_agent_v1.spawn_agent를 agent_type="qa", fork_context=false로 호출해.
+specialist 하나만 spawn하고 완료를 기다린 뒤 native agent ID와 spawn schema에 노출된 구성
+model/effort를 보고하고 ./orchestrate audit latest를 실행해. unconfigured/default role을 숨기거나
+임의로 복구하지 마.
+
+## BRIEF
+**Dispatch:** 현재 audit run ID 뒤에 -D001을 붙인 값
+**Role:** qa
+**Objective:** AGENTS.md 읽기 전용 정책 점검으로 native role routing을 검증한다.
+**Deliverables:** 두 정책 확인과 runtime role/model metadata를 담은 최종 RESULT 하나; file 없음.
+**Context:** AGENTS.md를 먼저 읽고 SubagentStart가 주입한 runtime metadata와 BRIEF를 사용한다.
+**Constraints:** write, Git mutation, network access, delegation, remediation 금지.
+**Done when:** root-only single-hop topology와 명시적 Git authority boundary를 근거와 함께 확인하고 valid RESULT를 반환한다.
+**Out of scope:** repository 변경, test, 광범위 review, research claim, 후속 dispatch.
 ```
 
 다음을 모두 확인한 경우에만 진행합니다.
 
 - concrete native agent ID;
 - `default`, `null`, `unconfigured:*`가 아닌 요청한 `qa` role;
+- root 설정을 상속한 값이 아닌 native event의 QA model과 spawn schema의 고정 reasoning effort;
 - `BRIEF delivered`, `RESULT valid`;
 - 정상 event chain과 `Unverified claims: 0`.
 
@@ -74,6 +92,9 @@ role override를 실제 사용했다고 주장하지 말고 gated research workf
 | `quality` | 가설, critic/QA gate, 결과 해석, 논문 review |
 | `balanced` | 일반 구현과 제한된 탐색 |
 | `fast` | 넓은 1차 탐색과 기계적 작업 |
+
+세 preset 모두 reasoning level이 서로 다른 V1 호환 Luna root를 사용하며, specialist fleet file은
+역할과 작업량에 따라 Luna, Terra, Sol을 계속 선택합니다.
 
 ```bash
 ./orchestrate codex --preset balanced
@@ -90,6 +111,8 @@ leakage, RESULT, experiment gate가 실행됐다는 근거가 아닙니다. 각�
 
 Safe mode에서는 `.codex/` 아래 provider-private state 기록에 좁은 승인을 요청할 수 있습니다.
 정확한 경로를 확인하고 무관하거나 광범위한 filesystem access는 승인하지 마세요.
+BRIEF 등록은 활성 `.codex/runs/ORCH-.../` 원장을 기록하므로 smoke test 중 해당
+provider-private run 경로만 승인하는 것은 정상입니다.
 
 ## Workspace와 파일 소유권
 
@@ -238,8 +261,9 @@ path는 저장하지 않습니다. Remote attestation이 아니라 private local
   gate 통과나 완전한 reproducibility record를 증명하지 않습니다. Sweep은
   `run_with_status.sh EXP-NNN --tag RUN-TAG -- <command>`로 sub-run을 구분하고 EXP 경로에
   `sweep_summary.py`를 실행합니다.
-- Local audit의 `Status: completed` 뒤에 새 event가 있다면 process 종료 증거로 사용하지 마세요.
-  Event 순서와 unverified claim을 함께 검사합니다.
+- Launcher는 Codex process가 반환된 뒤에만 최종 `session_ended` event를 append합니다. 따라서
+  `Status: completed`는 exit code 0을 뜻하지만 event chain이 정상이고 `Unverified claims: 0`일
+  때만 run을 신뢰합니다.
 
 ## 보안과 Git 권한
 

@@ -56,7 +56,9 @@ class DistributionValidation(unittest.TestCase):
                      "docs/orchestration/CODEX.md", "docs/orchestration/CODEX.ko.md",
                      "docs/orchestration/CLAUDE.md", "docs/orchestration/CLAUDE.ko.md",
                      "docs/orchestration/MAINTAINERS.md",
-                     "docs/orchestration/MAINTAINERS.ko.md", ".codex/ORCHESTRATION.md",
+                     "docs/orchestration/MAINTAINERS.ko.md",
+                     "docs/orchestration/PROJECT_MAP.md",
+                     "docs/orchestration/PROJECT_MAP.ko.md", ".codex/ORCHESTRATION.md",
                      ".codex/templates/plan/PRD.md",
                      ".codex/templates/plan/CHECKLIST.md",
                      ".codex/templates/report/discussion.md",
@@ -116,8 +118,25 @@ class DistributionValidation(unittest.TestCase):
             "functionals/", "utils/",
         }
         actual = set(project_map["categories"]["research-workspace"]["paths"])
-        self.assertEqual(actual, expected)
+        self.assertTrue(expected.issubset(actual))
+        self.assertIn("run.sh", actual)
+        self.assertIn("evaluate.sh", actual)
         self.assertIn("README.md", project_map["categories"]["adapt-and-rewrite"]["files"])
+        providers = project_map["categories"]["provider-orchestration-core"]["providers"]
+        self.assertEqual(set(providers), {"codex", "claude"})
+        self.assertIn(".codex/", providers["codex"]["paths"])
+        self.assertIn(".claude/", providers["claude"]["paths"])
+
+    def test_adaptation_report_is_provider_aware_and_read_only(self):
+        report = launcher.adaptation_report("codex")
+        self.assertEqual(report["backend"], "codex")
+        self.assertEqual(report["unselected_provider"], "claude")
+        self.assertIn(".claude/", report["unselected_provider_paths"])
+        self.assertIn("docs/", report["template_only_paths"])
+        self.assertIn("requirements.txt", {item["path"] for item in report["rewrite_files"]})
+        self.assertFalse(report["mutated"])
+        parsed = launcher.parser().parse_args(["adapt", "codex", "--json"])
+        self.assertEqual((parsed.command, parsed.target, parsed.json), ("adapt", "codex", True))
 
     def test_codex_skill_set_is_complete_and_distribution_ready(self):
         skill_root = os.path.join(ROOT, ".agents", "skills")
@@ -217,7 +236,9 @@ class DistributionValidation(unittest.TestCase):
             self.assertTrue(any("audit_event.py" in command for command in commands), event)
         with open(os.path.join(ROOT, ".codex", "hooks", "session_close_gate.py"),
                   encoding="utf-8") as handle:
-            self.assertIn("record_completed_stop", handle.read())
+            close_hook = handle.read()
+        self.assertIn("record_turn_stop", close_hook)
+        self.assertIn("turn_stopped", close_hook)
 
     def test_clean_root_templates_match_positive_gate_schema(self):
         template_dir = os.path.join(ROOT, ".codex", "templates", "report")
@@ -402,6 +423,9 @@ class DistributionValidation(unittest.TestCase):
 
     def test_dry_run_commands(self):
         codex = launcher.build_codex("quality", "safe", {}, False, False)
+        self.assertIn("--strict-config", codex)
+        self.assertEqual(codex[codex.index("--model") + 1], "gpt-5.6-luna")
+        self.assertIn("features.multi_agent_v2=false", codex)
         self.assertIn("--sandbox", codex)
         self.assertIn("workspace-write", codex)
         self.assertIn("on-request", codex)
@@ -660,6 +684,7 @@ class DistributionValidation(unittest.TestCase):
         self.assertIn("Checkpoint with the user before eight dispatches", codex_flat)
         self.assertRegex(config, r"(?m)^max_depth\s*=\s*1\s*$")
         self.assertRegex(config, r"(?m)^max_threads\s*=\s*4\s*$")
+        self.assertRegex(config, r"(?m)^multi_agent_v2\s*=\s*false\s*$")
         self.assertNotIn("[agents.orchestrator]", config)
         direct_dispatch_edges = len(CODEX_ROLES)
         layered_dispatch_edges = direct_dispatch_edges + 1
@@ -678,7 +703,10 @@ class DistributionValidation(unittest.TestCase):
         if not shutil_which("codex"):
             self.skipTest("codex unavailable")
         files = {role: launcher.agent_path("quality", role) for role in CODEX_ROLES}
-        launcher.validate_codex(files, "gpt-5.6-sol", "xhigh")
+        launcher.validate_codex(files, *launcher.PRESETS["quality"])
+        catalog = launcher.codex_catalog()
+        for root_model, _ in launcher.PRESETS.values():
+            self.assertIn(catalog[root_model]["multi_agent_version"], (None, "v1"))
         launcher.validate_codex_mcp()
 
 

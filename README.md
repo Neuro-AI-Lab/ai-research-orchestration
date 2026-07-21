@@ -18,7 +18,9 @@ after initialization, so comparisons require separate clones or worktrees.
 | Claude Code | provider-owned lead-agent routing and specialists | [Claude guide](docs/orchestration/CLAUDE.md) |
 
 Maintainer and release procedures are in the [maintainer guide](docs/orchestration/MAINTAINERS.md).
-Korean guides are available beside each English document.
+Before turning the template into a real project, review the complete
+[project path map](docs/orchestration/PROJECT_MAP.md). Korean guides are available beside each
+English document.
 
 ## Quick start
 
@@ -29,6 +31,7 @@ For Codex
 git clone <this-repo> my-research
 cd my-research
 ./orchestrate init codex       # or: ./orchestrate init claude
+./orchestrate adapt codex      # review non-mutating project-conversion advice
 ./orchestrate doctor codex     # use the same provider
 ./orchestrate codex --preset quality
 ```
@@ -57,9 +60,10 @@ project's privacy, licensing, and size policy permits.
 
 ## The agent team
 
-Ten roles: a lead session (or a spawnable dedicated orchestrator) plus eight research/build/ops
-specialists, each with an owned area, a pinned default model, and a pinned reasoning effort. The
-table below is the `quality` fleet, the system default.
+Both providers share eight research/build/ops specialist responsibilities. Codex uses the root
+session itself as the conductor-orchestrator and never spawns a lead agent. Claude supplies two lead
+definitions (primary and fallback) in addition to those eight specialists. The table below is the
+Claude `quality` fleet; Codex pins its separate quality fleet under `.codex/fleets/`.
 
 | Tier | Agent | Model | Effort | Owns |
 |---|---|---|---|---|
@@ -86,7 +90,8 @@ same role set exists on the Codex plane (`.codex/prompts/roles/`, `.agents/skill
 Three mandatory gates run before any experiment launches:
 
 1. **Critic** reviews the plan (a `REV` entry records `Gate: passed`; no blocking `REV` open).
-2. **QA** verifies the code commit (a `QA` entry records a passed verdict; no critical `BUG` open).
+2. **QA** verifies the actual implementation state/diff (a `QA` entry records a passed verdict; no
+   critical `BUG` open).
 3. **Data** documents the split and runs the leakage checklist (a `DATASET` entry records a passed
    leakage audit).
 
@@ -100,10 +105,11 @@ fields before allowing the run through.
 Research state lives in a **version-gated four-document record** under `report/`: `result.md`,
 `discussion.md`, and `issue.md` hold only the current version's typed, append-only entries
 (`HYP`/`EXP`/`REV`/`QA`/`BUG`/`ADR`/... with cross-references between them); `version.md` is the
-cumulative archive that absorbs each version's content at a milestone boundary. Session continuity is
-two-layered: a `SessionStart` hook injects a machine-readable hand-off
-(`.claude/state/handoff.json`), open gates, and running/orphaned experiments into every new session;
-a `Stop` hook blocks session close if the research docs changed without a matching hand-off update.
+cumulative archive that absorbs each version's content at a milestone boundary. Session continuity
+is two-layered: a selected-provider `SessionStart` hook injects its ignored machine-readable hand-off,
+open gates, and running/orphaned experiments. Claude can enforce hand-off freshness at close; Codex
+treats `Stop` as a turn boundary and records it without falsely claiming process exit, while the
+launcher records the actual Codex process exit in the audit ledger.
 
 ## Research features
 
@@ -117,7 +123,7 @@ Integrations and disciplines the system provides out of the box:
 | Reproducibility discipline | Per-run records under `experiments/runs/`, pre-run metadata capture (commit, config, seed, environment), dataset-hash re-verification before every run | `experiment-reproducibility` skill; `experiment-tracker`, `developer` |
 | Leakage defense | Split-integrity checklist shared across six roles; a leaky experiment is invalidated and re-run, never silently deleted | `data-leakage-audit` skill |
 | Adversarial review | A dedicated critic role, on a `max`-effort budget, gates plans before experiments and results before reporting | `research-validity-review` skill |
-| New-project adaptation | `./orchestrate init` diffs the checkout against a machine-readable project map and prints a concrete adaptation checklist | `.orchestration/project_map.json`; human guide `docs/orchestration/PROJECT_MAP.md` |
+| New-project adaptation | `./orchestrate init` and `./orchestrate adapt <provider>` diff the checkout against a machine-readable project map and print a concrete, non-mutating adaptation checklist | `.orchestration/project_map.json`; [human guide](docs/orchestration/PROJECT_MAP.md) |
 
 ## Research workflow
 

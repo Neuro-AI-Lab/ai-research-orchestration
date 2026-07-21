@@ -59,12 +59,16 @@ def main():
     try:
         with open(handoff_path, encoding='utf-8') as fh:
             handoff = json.load(fh)
+        def clip(text, limit):
+            text = str(text)
+            return text if len(text) <= limit else text[:limit].rstrip() + ' … [read handoff.json for the rest]'
+
         lines.append(f"- Last hand-off ({handoff.get('updated_at', '?')}): "
-                     f"{handoff.get('summary', '(no summary)')}")
+                     f"{clip(handoff.get('summary', '(no summary)'), 600)}")
         for item in handoff.get('next_actions', [])[:6]:
-            lines.append(f'  - next: {item}')
+            lines.append(f'  - next: {clip(item, 300)}')
         for item in handoff.get('open_items', [])[:6]:
-            lines.append(f'  - open: {item}')
+            lines.append(f'  - open: {clip(item, 300)}')
     except (OSError, ValueError):
         lines.append('- No hand-off file yet (.claude/state/handoff.json) — first session or '
                      'previous session ended without closing properly.')

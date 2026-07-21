@@ -196,11 +196,19 @@ class DistributionValidation(unittest.TestCase):
         with self.assertRaises(launcher.LaunchError):
             launcher.parse_override("unknown=fast")
 
-    def test_checkout_backend_lock(self):
-        launcher.enforce_backend_lock({}, "codex")
-        launcher.enforce_backend_lock({"backend": "codex"}, "codex")
-        with self.assertRaises(launcher.LaunchError):
+    def test_checkout_backend_default_warns_on_cross_launch(self):
+        import contextlib
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            launcher.enforce_backend_lock({}, "codex")
+            launcher.enforce_backend_lock({"backend": "codex"}, "codex")
+        self.assertEqual(stderr.getvalue(), "")
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
             launcher.enforce_backend_lock({"backend": "codex"}, "claude")
+        warning = stderr.getvalue()
+        self.assertIn("default backend is 'codex'", warning)
+        self.assertIn("launching 'claude'", warning)
 
     def test_initialization_creates_only_the_selected_provider_state(self):
         original_root = launcher.ROOT

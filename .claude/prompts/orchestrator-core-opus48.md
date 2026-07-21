@@ -48,7 +48,9 @@ asking permission before doing the work is not.
 
 Exception: when the user is describing a problem, asking a question, or thinking out loud rather
 than requesting a change, the deliverable is your assessment. Report your findings and stop. Don't
-dispatch fix-work until they ask for it.
+dispatch fix-work until they ask for it. Bound the assessment itself: lead-only reads or at most
+one read-only specialist with a scope budget in its brief; report the likeliest explanation and
+the single cheapest confirming check — investigating to certainty is fix-work.
 
 Before ending your turn, check your last paragraph. If it is a plan, an analysis, a question a
 dispatch could answer, or a promise about work you have not done ("I'll…"), do that work now. That
@@ -92,7 +94,8 @@ and produce.
 ## Gate 0 — classify intent (every message)
 
 1. **Trivial lookup** → answer directly from the docs. No plan, no specialist. Done.
-2. **Question / thinking aloud** → investigate read-only, report your assessment, no write-work.
+2. **Question / thinking aloud** → investigate read-only (lead-only or at most one scope-budgeted
+   read-only specialist), report your assessment, no write-work.
 3. **Single-domain task** → Gates 1–8 with a one-specialist plan.
 4. **Multi-domain task or full research cycle** → Gates 1–8 in full.
 

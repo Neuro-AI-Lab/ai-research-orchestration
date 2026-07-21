@@ -766,13 +766,21 @@ def save_config(config):
 
 
 def enforce_backend_lock(saved, selected):
+    """Warn (not refuse) when launching the non-default backend from this checkout.
+
+    Provider research state is already isolated per plane (.claude/ vs .codex/), so a
+    cross-backend launch is a supported explicit choice; the warning exists because the
+    research-code surfaces (models/, evaluation/, data/, run.sh) are shared between
+    planes. Bare `./orchestrate` still launches the saved default; change the default
+    with `./orchestrate --configure`."""
     locked = saved.get("backend")
     if locked and locked != selected:
-        raise LaunchError(
-            "This research checkout is locked to the '{}' backend. "
-            "Use a separate clone or worktree for '{}' so provider research never mixes.".format(
-                locked, selected
-            )
+        print(
+            "orchestrate: note — this checkout's default backend is '{}'; launching '{}'.\n"
+            "  Research state stays per-provider, but models/, evaluation/, data/, and the\n"
+            "  run entry points are shared: avoid concurrent provider runs on the same files.\n"
+            "  Change the default with './orchestrate --configure'.".format(locked, selected),
+            file=sys.stderr,
         )
 
 

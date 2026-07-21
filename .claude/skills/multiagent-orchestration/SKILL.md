@@ -125,7 +125,10 @@ sub-runs, not many experiments:
 - Quote key worker findings verbatim in syntheses and reports — paraphrase drifts, and drift
   compounds across stages.
 - A `complete` status without ✅ evidence lines is not complete. Bounce it back once with the
-  missing criterion named.
+  missing criterion named. The bounce is surgical: return the RESULT itself — do not re-run the
+  worker's task, re-verify its artifacts yourself, or build a verification pipeline around one
+  missing evidence line. After the single bounce, accept the retry on its evidence or escalate;
+  then continue the workflow from where it stood.
 - When two workers disagree, reconcile explicitly: identify which claim has stronger evidence, or
   dispatch a targeted tie-breaker. Never average, and never silently adopt the later answer.
 

@@ -27,9 +27,11 @@ git clone <this-repo> my-research
 cd my-research
 ./orchestrate init codex       # 또는: ./orchestrate init claude
 ./orchestrate doctor codex     # 같은 provider 사용
-./orchestrate codex --preset quality --dry-run
 ./orchestrate codex --preset quality
 ```
+For CLAUDE, you can type analogous to codex
+CLAUDE 기반 시스템도 Codex와 마찬가지로 `./orchestrate claude --preset quality`를 타이핑하여 사용할 수 있습니다.
+세션마다 더 저렴한 orchestration 시스템도 다음과 같은 커멘드로 활용 가능합니다. — `./orchestrate claude|codex --preset balanced|fast`
 
 `init`은 provider-private local state를 만들고 누락된 workspace seed를 채우며 checkout을 해당
 provider에 고정합니다. 같은 checkout에서 다른 provider 실행은 거부됩니다.

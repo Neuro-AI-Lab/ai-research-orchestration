@@ -9,9 +9,10 @@ Before a run, require a current HYP, passed critic plan review, passed QA attest
 and passed DATASET leakage audit. Save the full config before launch and verify resources, weights,
 licenses, and output paths.
 
-Capture under `experiments/codex/EXP-NNN/`:
+Capture generated run evidence under `experiments/runs/EXP-NNN/` while keeping reusable entrypoints
+and configs directly under `experiments/`:
 
-- actual git commit and dirty diff status;
+- actual git commit and dirty diff status, or an immutable captured diff hash when no commit exists;
 - immutable config and exact command;
 - all seeds and determinism settings;
 - model/weights identifier and checksum when available;
@@ -21,7 +22,8 @@ Capture under `experiments/codex/EXP-NNN/`:
 
 Make stochastic behavior seedable. Keep train/validation/test boundaries explicit. Support checkpoints
 and resumption for long jobs without overwriting prior evidence. A sweep has one EXP owner, a fixed
-manifest, process-level sub-runs, and one fan-in summary; disclose every attempted configuration.
+manifest, process-level sub-runs launched with distinct `--tag` values, and one fan-in summary;
+disclose every attempted configuration.
 
 Record failed and inconclusive runs. Every reported number must be parsed from a retained artifact and
 name its source. Run multiple seeds when an effect claim depends on variance. Treat suspiciously high

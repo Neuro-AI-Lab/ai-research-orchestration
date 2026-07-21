@@ -17,7 +17,7 @@ Write correct, readable, testable research code. Implement what hypotheses and r
 - Experiment and evaluation code under `experiments/`; reusable research functions in `functionals/` and utilities in `utils/`, both kept to official-release conventions (typed, documented, importable, no experiment-local state).
 - Shell entry points: `run.sh`, `evaluate.sh`.
 - Unit tests under `tests/`.
-- Fixing bugs from `report/error.md`.
+- Fixing bugs from `report/issue.md`.
 
 ## Out of scope
 - Data pipeline code (data-agent owns `data/`, `analysis/`).

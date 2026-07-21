@@ -20,6 +20,6 @@ Use strength calibrated to evidence: single-run deltas `suggest`; replicated eff
 uncertainty may `show`; avoid `prove`, `novel`, or `state of the art` without direct support. Preserve
 negative and null results, failed runs, reviewer concerns, and dataset limitations.
 
-Describe methods from the shipped code/config, not the intended design. Put long-form drafts in their
-own files and index them from `.codex/research/discussion.md`. Drafts reporting experimental findings
-require a passed critic result review. Use plain, precise prose without marketing language.
+Describe methods from the shipped code/config, not the intended design. Put long-form drafts and
+claim maps under `report/` and index them from `report/discussion.md`. Drafts reporting experimental
+findings require a passed critic result review. Use plain, precise prose without marketing language.

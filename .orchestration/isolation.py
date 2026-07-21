@@ -7,7 +7,7 @@ import re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TEXT_SUFFIXES = {".md", ".toml", ".json", ".py", ".sh", ".yaml", ".yml"}
-ROOT_STATE = ("discussion.md", "result.md", "error.md", "version.md", "CODEX.md")
+ROOT_STATE = ("discussion.md", "result.md", "error.md", "issue.md", "version.md", "CODEX.md")
 
 SURFACES = {
     "codex": (
@@ -41,8 +41,6 @@ SURFACES = {
 FORBIDDEN = {
     "codex": re.compile(
         r"\.claude/|\.mcp\.json|\bCLAUDE\.md\b|"
-        r"(?<![A-Za-z0-9_./])(?:plan/(?:PRD|CHECKLIST)\.md|"
-        r"report/(?:discussion|result|error|version)\.md)|"
         r"\b(?:Claude|Anthropic|Sonnet|Opus|Fable|Haiku)\b|"
         r"\borchestrator-opus\b",
         re.IGNORECASE,
@@ -54,10 +52,13 @@ FORBIDDEN = {
 }
 
 UNSCOPED_STATE = re.compile(
-    r"(?<![A-Za-z0-9_./])(?:discussion|result|error|version)\.md\b"
+    r"(?<![A-Za-z0-9_./])(?:discussion|result|error|issue|version)\.md\b"
 )
 VAGUE_STATE = re.compile(r"\broot (?:doc|document)s?\b", re.IGNORECASE)
-ARTIFACT_PATHS = ("experiments", "analysis", "papers/notes")
+LEGACY_CODEX_PATH = re.compile(
+    r"\.codex/research/|experiments/codex/|analysis/codex/|papers/notes/codex/|"
+    r"(?<![A-Za-z0-9_.-])models/|(?<![A-Za-z0-9_.-])evaluation/"
+)
 CODEX_SPECIALISTS = {
     "brainstorm", "data", "critic", "developer", "qa", "experiment-tracker",
     "filemanager", "writer",
@@ -88,7 +89,7 @@ def provider_isolation_errors():
             errors.append("legacy shared control file exists at repository root: " + name)
 
     for surface in ("codex", "claude"):
-        expected_prefix = "report/" if surface == "claude" else ".codex/research/"
+        expected_prefix = "report/"
         for relative, path in iter_files(surface):
             try:
                 with open(path, encoding="utf-8") as handle:
@@ -118,23 +119,12 @@ def provider_isolation_errors():
                             relative, line_number, vague.group(0)
                         )
                     )
-                if relative.endswith("overleaf_sync.sh"):
-                    continue
-                if surface != "codex":
-                    continue  # Claude uses the plain research-workspace dirs (report/, experiments/, analysis/)
-                for artifact in ARTIFACT_PATHS:
-                    unscoped_artifact = re.search(
-                        r"(?<![A-Za-z0-9_./-]){}/(?!{}(?:/|\b))".format(
-                            re.escape(artifact), re.escape(surface)
-                        ),
-                        line,
-                    )
-                    if unscoped_artifact:
-                        errors.append(
-                            "{}:{}: {} artifact path must be {}/{}/".format(
-                                relative, line_number, surface, artifact, surface
-                            )
+                if surface == "codex" and LEGACY_CODEX_PATH.search(line):
+                    errors.append(
+                        "{}:{}: Codex control plane contains a legacy workspace path".format(
+                            relative, line_number
                         )
+                    )
     config_path = os.path.join(ROOT, ".codex", "config.toml")
     try:
         with open(config_path, encoding="utf-8") as handle:
@@ -148,6 +138,10 @@ def provider_isolation_errors():
         errors.append(".codex/config.toml: Codex max_threads must be 4")
     if "[agents.orchestrator]" in config:
         errors.append(".codex/config.toml: root Codex must not configure an orchestrator subagent")
+
+    legacy_templates = os.path.join(ROOT, ".codex", "templates", "research")
+    if os.path.exists(legacy_templates):
+        errors.append(".codex/templates/research: legacy Codex templates must not ship")
 
     for preset in ("quality", "balanced", "fast"):
         directory = os.path.join(ROOT, ".codex", "fleets", preset)

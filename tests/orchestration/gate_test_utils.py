@@ -19,21 +19,21 @@ DISCUSSION = """# discussion
 """
 
 
-def run_hook(command, backend="codex", discussion=DISCUSSION, error="# error\n"):
+def run_hook(command, backend="codex", discussion=DISCUSSION, issue="# issue\n"):
     if backend not in {"codex", "claude"}:
         raise ValueError("unknown backend: " + backend)
     hook = os.path.join(REPO_ROOT, "." + backend, "hooks", "experiment_gate.py")
     payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": command}})
     with tempfile.TemporaryDirectory() as root:
-        state = (os.path.join(root, "report") if backend == "claude"
-                 else os.path.join(root, "." + backend, "research"))
+        state = os.path.join(root, "report")
         os.makedirs(state)
         with open(os.path.join(state, "discussion.md"), "w", encoding="utf-8") as handle:
             handle.write(discussion)
-        with open(os.path.join(state, "error.md"), "w", encoding="utf-8") as handle:
-            handle.write(error)
+        with open(os.path.join(state, "issue.md"), "w", encoding="utf-8") as handle:
+            handle.write(issue)
         variable = "CODEX_PROJECT_DIR" if backend == "codex" else "CLAUDE_PROJECT_DIR"
         return subprocess.run(
             [sys.executable, hook], input=payload, text=True, capture_output=True,
-            env=dict(os.environ, **{variable: root}), cwd=REPO_ROOT, check=False,
+            env=dict(os.environ, ORCHESTRATION_BACKEND=backend, **{variable: root}),
+            cwd=REPO_ROOT, check=False,
         )

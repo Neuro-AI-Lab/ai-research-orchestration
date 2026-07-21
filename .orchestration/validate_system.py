@@ -57,12 +57,26 @@ class DistributionValidation(unittest.TestCase):
                      "docs/orchestration/CLAUDE.md", "docs/orchestration/CLAUDE.ko.md",
                      "docs/orchestration/MAINTAINERS.md",
                      "docs/orchestration/MAINTAINERS.ko.md", ".codex/ORCHESTRATION.md",
+                     ".codex/templates/plan/PRD.md",
+                     ".codex/templates/plan/CHECKLIST.md",
+                     ".codex/templates/report/discussion.md",
+                     ".codex/templates/report/issue.md",
+                     ".codex/templates/report/result.md",
+                     ".codex/templates/report/version.md",
                      ".claude/templates/plan/PRD.md",
                      ".claude/templates/plan/CHECKLIST.md",
-                     "requirements.txt", "requirements-dev.txt", ".codex/config.toml",
+                     ".claude/templates/report/discussion.md",
+                     ".claude/templates/report/issue.md",
+                     ".claude/templates/report/result.md",
+                     ".claude/templates/report/version.md",
+                     "plan/PRD.md", "plan/CHECKLIST.md",
+                     "report/discussion.md", "report/issue.md",
+                     "report/result.md", "report/version.md",
+                     "requirements.txt", ".codex/config.toml",
                      ".codex/hooks/audit_event.py", ".codex/scripts/orchestration_audit.py",
                      ".orchestration/release_check.py", ".orchestration/isolation.py",
-                     ".orchestration/validate_system.py", "orchestrate"):
+                     ".orchestration/project_map.json", ".orchestration/validate_system.py",
+                     "orchestrate"):
             self.assertTrue(os.path.isfile(os.path.join(ROOT, path)), path)
         for path in ("SETUP.md", "SETUP.ko.md", "SECURITY.md", "SECURITY.ko.md",
                      "CONTRIBUTING.md", ".codex/README.md", ".claude/README.md"):
@@ -92,6 +106,18 @@ class DistributionValidation(unittest.TestCase):
                     content = handle.read().lower()
                 for token in required:
                     self.assertIn(token, content)
+
+    def test_project_map_matches_canonical_workspace(self):
+        with open(os.path.join(ROOT, ".orchestration", "project_map.json"),
+                  encoding="utf-8") as handle:
+            project_map = json.load(handle)
+        expected = {
+            "plan/", "report/", "data/", "model/", "experiments/", "analysis/",
+            "functionals/", "utils/",
+        }
+        actual = set(project_map["categories"]["research-workspace"]["paths"])
+        self.assertEqual(actual, expected)
+        self.assertIn("README.md", project_map["categories"]["adapt-and-rewrite"]["files"])
 
     def test_codex_skill_set_is_complete_and_distribution_ready(self):
         skill_root = os.path.join(ROOT, ".agents", "skills")
@@ -194,21 +220,26 @@ class DistributionValidation(unittest.TestCase):
             self.assertIn("record_completed_stop", handle.read())
 
     def test_clean_root_templates_match_positive_gate_schema(self):
-        template_dir = os.path.join(ROOT, ".codex", "templates", "research")
+        template_dir = os.path.join(ROOT, ".codex", "templates", "report")
         with open(os.path.join(template_dir, "discussion.md"), encoding="utf-8") as handle:
             discussion = handle.read()
         self.assertIn("## [REV-NNN]", discussion)
         self.assertIn("## [QA-NNN]", discussion)
         self.assertIn("**Gate:** passed | blocked", discussion)
         self.assertIn("**Leakage audit:** passed | blocked", discussion)
-        for name in ("discussion.md", "result.md", "error.md", "version.md"):
+        for name in ("discussion.md", "result.md", "issue.md", "version.md"):
             with open(os.path.join(template_dir, name), encoding="utf-8") as handle:
                 content = handle.read()
             self.assertIn("## Summary", content)
         for backend in ("codex", "claude"):
             provider = os.path.join(ROOT, "." + backend)
-            for name in ("discussion.md", "result.md", "error.md", "version.md"):
-                self.assertTrue(os.path.isfile(os.path.join(provider, "templates", "research", name)))
+            for name in ("discussion.md", "result.md", "issue.md", "version.md"):
+                self.assertTrue(os.path.isfile(os.path.join(provider, "templates", "report", name)))
+            for name in ("PRD.md", "CHECKLIST.md"):
+                self.assertTrue(os.path.isfile(os.path.join(provider, "templates", "plan", name)))
+        for name in ("discussion.md", "result.md", "issue.md", "version.md"):
+            with open(os.path.join(ROOT, "report", name), encoding="utf-8") as handle:
+                self.assertIn("## Summary", handle.read())
         for role in ("conductor", "brainstorm", "critic"):
             self.assertTrue(os.path.isfile(os.path.join(
                 ROOT, ".codex", "templates", "memory", role, "MEMORY.md"
@@ -226,19 +257,12 @@ class DistributionValidation(unittest.TestCase):
         with self.assertRaises(launcher.LaunchError):
             launcher.parse_override("unknown=fast")
 
-    def test_checkout_backend_default_warns_on_cross_launch(self):
-        import contextlib
-        stderr = io.StringIO()
-        with contextlib.redirect_stderr(stderr):
-            launcher.enforce_backend_lock({}, "codex")
-            launcher.enforce_backend_lock({"backend": "codex"}, "codex")
-        self.assertEqual(stderr.getvalue(), "")
-        stderr = io.StringIO()
-        with contextlib.redirect_stderr(stderr):
+    def test_checkout_backend_lock_refuses_cross_launch(self):
+        launcher.enforce_backend_lock({}, "codex")
+        launcher.enforce_backend_lock({"backend": "codex"}, "codex")
+        with self.assertRaises(launcher.LaunchError) as raised:
             launcher.enforce_backend_lock({"backend": "codex"}, "claude")
-        warning = stderr.getvalue()
-        self.assertIn("default backend is 'codex'", warning)
-        self.assertIn("launching 'claude'", warning)
+        self.assertIn("separate clone/worktree", str(raised.exception))
 
     def test_initialization_creates_only_the_selected_provider_state(self):
         original_root = launcher.ROOT
@@ -250,9 +274,13 @@ class DistributionValidation(unittest.TestCase):
                     ".codex/state/handoff.json.example",
                 ]
                 sources.extend(
-                    ".codex/templates/research/{}".format(name)
-                    for name in ("discussion.md", "result.md", "error.md", "version.md")
+                    ".codex/templates/report/{}".format(name)
+                    for name in ("discussion.md", "result.md", "issue.md", "version.md")
                 )
+                sources.extend((
+                    ".codex/templates/plan/PRD.md",
+                    ".codex/templates/plan/CHECKLIST.md",
+                ))
                 sources.extend(
                     ".codex/templates/memory/{}/MEMORY.md".format(role)
                     for role in ("conductor", "brainstorm", "critic")
@@ -271,7 +299,12 @@ class DistributionValidation(unittest.TestCase):
                     root, ".codex", "state", "handoff.json"
                 )))
                 self.assertFalse(os.path.exists(os.path.join(root, ".claude")))
-                self.assertFalse(os.path.exists(os.path.join(root, "experiments", "claude")))
+                for relative in (
+                    "plan/PRD.md", "plan/CHECKLIST.md", "report/discussion.md",
+                    "report/result.md", "report/issue.md", "report/version.md", "data",
+                    "model", "experiments/runs", "analysis", "functionals", "utils",
+                ):
+                    self.assertTrue(os.path.exists(os.path.join(root, relative)), relative)
             finally:
                 launcher.ROOT = original_root
 
@@ -285,8 +318,8 @@ class DistributionValidation(unittest.TestCase):
                     ".claude/state/handoff.json.example",
                 ]
                 sources.extend(
-                    ".claude/templates/research/{}".format(name)
-                    for name in ("discussion.md", "result.md", "error.md", "version.md")
+                    ".claude/templates/report/{}".format(name)
+                    for name in ("discussion.md", "result.md", "issue.md", "version.md")
                 )
                 sources.extend(
                     ".claude/templates/memory/{}/MEMORY.md".format(role)
@@ -305,7 +338,7 @@ class DistributionValidation(unittest.TestCase):
                     launcher.initialize_project("claude")
                 for relative in (
                     "plan/PRD.md", "plan/CHECKLIST.md", "report/discussion.md",
-                    "report/result.md", "report/error.md", "report/version.md",
+                    "report/result.md", "report/issue.md", "report/version.md", "data",
                     "model", "experiments/runs", "analysis", "functionals", "utils",
                 ):
                     self.assertTrue(os.path.exists(os.path.join(root, relative)), relative)
@@ -499,6 +532,36 @@ class DistributionValidation(unittest.TestCase):
         self.assertEqual(proc.returncode, 2)
         self.assertIn("GATE", proc.stderr)
 
+    def test_codex_run_status_wrapper_matches_single_and_sweep_layouts(self):
+        wrapper = os.path.join(ROOT, ".codex", "scripts", "run_with_status.sh")
+        with tempfile.TemporaryDirectory() as root:
+            env = dict(os.environ, EXPERIMENTS_DIR=os.path.join(root, "runs"))
+            single = subprocess.run(
+                [wrapper, "EXP-001", "--", "true"], text=True, capture_output=True, env=env,
+                check=False,
+            )
+            self.assertEqual(single.returncode, 0, single.stderr)
+            with open(os.path.join(root, "runs", "EXP-001", "status.json"),
+                      encoding="utf-8") as handle:
+                self.assertEqual(json.load(handle)["state"], "completed")
+            tagged = subprocess.run(
+                [wrapper, "EXP-002", "--tag", "seed-1", "--", "true"],
+                text=True, capture_output=True, env=env, check=False,
+            )
+            self.assertEqual(tagged.returncode, 0, tagged.stderr)
+            tagged_status = os.path.join(
+                root, "runs", "EXP-002", "runs", "seed-1", "status.json"
+            )
+            with open(tagged_status, encoding="utf-8") as handle:
+                status = json.load(handle)
+            self.assertEqual((status["exp_id"], status["run_tag"], status["state"]),
+                             ("EXP-002", "seed-1", "completed"))
+            invalid = subprocess.run(
+                [wrapper, "../escape", "--", "true"], text=True, capture_output=True, env=env,
+                check=False,
+            )
+            self.assertEqual(invalid.returncode, 64)
+
     def test_positive_research_gate_attestations(self):
         hook = os.path.join(ROOT, ".claude", "hooks", "experiment_gate.py")
         launch = json.dumps({"tool_name": "Bash", "tool_input": {"command": "./run.sh train"}})
@@ -518,8 +581,8 @@ class DistributionValidation(unittest.TestCase):
             os.makedirs(state)
             with open(os.path.join(state, "discussion.md"), "w", encoding="utf-8") as handle:
                 handle.write(discussion)
-            with open(os.path.join(state, "error.md"), "w", encoding="utf-8") as handle:
-                handle.write("# error\n")
+            with open(os.path.join(state, "issue.md"), "w", encoding="utf-8") as handle:
+                handle.write("# issue\n")
             env = dict(os.environ, CLAUDE_PROJECT_DIR=root)
             proc = subprocess.run([sys.executable, hook], input=launch,
                                   text=True, capture_output=True, cwd=ROOT, env=env)
@@ -560,7 +623,7 @@ class DistributionValidation(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             state = os.path.join(root, "report")
             os.makedirs(state)
-            for name in ("discussion.md", "error.md", "result.md", "version.md"):
+            for name in ("discussion.md", "issue.md", "result.md", "version.md"):
                 with open(os.path.join(state, name), "w", encoding="utf-8") as handle:
                     handle.write("# template\n")
             payload = json.dumps({"stop_hook_active": False})
@@ -608,7 +671,7 @@ class DistributionValidation(unittest.TestCase):
             cwd=ROOT, capture_output=True, text=True, check=False,
         )
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
-        for name in ("discussion.md", "result.md", "error.md", "version.md", "CODEX.md"):
+        for name in ("discussion.md", "result.md", "error.md", "issue.md", "version.md", "CODEX.md"):
             self.assertFalse(os.path.exists(os.path.join(ROOT, name)), name)
 
     def test_installed_codex_supports_quality_fleet(self):

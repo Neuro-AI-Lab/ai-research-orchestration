@@ -16,10 +16,11 @@ Specialist가 concrete runtime ID와 근거가 있는 RESULT를 반환해야 위
 | `.claude/skills/`, `.claude/prompts/` | 연구 절차와 orchestration 계약 |
 | `.claude/hooks/` | RESULT, continuity, experiment, provider-state 검사 |
 | `.claude/scripts/` | literature, Zotero, Overleaf, run-status 도구 |
-| `experiments/runs/`, `analysis/` | 생성되는 provider-owned artifact |
+| `plan/`, `report/`, `data/` | 추적되는 연구 계획, record, dataset, preprocessing asset |
+| `model/`, `experiments/`, `analysis/`, `functionals/`, `utils/` | 개발·배포 workspace |
 
-초기화는 ignored setting, research state, agent memory, handoff를 만듭니다. 이는 local 연구
-데이터이며 배포 내용이 아닙니다.
+초기화는 ignored setting, agent memory, handoff를 만들고 누락된 clean workspace file을 채웁니다.
+Provider-private runtime data는 배포 내용이 아닙니다.
 
 ## 연구 워크스페이스 구조
 
@@ -29,8 +30,8 @@ Specialist가 concrete runtime ID와 근거가 있는 RESULT를 반환해야 위
 | 그룹 | 디렉토리 | 소유(에이전트) | 용도 |
 |---|---|---|---|
 | 개발 전용 | `plan/` | orchestrator | 사용자와 합의하는 `PRD.md`, `CHECKLIST.md` |
-| 개발 전용 | `report/` | 엔트리 타입별 다중 작성 | `discussion.md`, `error.md`(이슈 로그), `result.md`, `version.md` — 사용자와 에이전트 팀의 문서 논의 공간 |
-| 개발 전용 | `data/` | data | 데이터셋, 스플릿, 전처리 (커밋 금지) |
+| 개발 전용 | `report/` | 엔트리 타입별 다중 작성 | `discussion.md`, `issue.md`, `result.md`, `version.md` — 사용자와 에이전트 팀의 문서 논의 공간 |
+| 개발 전용 | `data/` | data | 프로젝트 data policy가 적용되는 dataset, split, preprocessing asset |
 | 개발·배포 | `model/` | developer | 모델 소스코드 |
 | 개발·배포 | `experiments/` | developer (+ `runs/`는 tracker) | 실험·평가 코드; 실행 기록은 `runs/` |
 | 개발·배포 | `analysis/` | data | 연구 결과 분석 코드·노트북 |
@@ -39,8 +40,9 @@ Specialist가 concrete runtime ID와 근거가 있는 RESULT를 반환해야 위
 | 개발·배포 | `tests/` | developer, qa | 재사용 가능한 검증·연구 regression test |
 | 개발·배포 | `docs/` | writer | public report와 paper artifact |
 
-개발 전용 내용은 연구 공개 시 배포되지 않으며, 개발·배포 디렉토리가 공개 가능한 핵심입니다.
-디렉토리별 쓰기 권한은 `CLAUDE.md`의 소유권 맵이 강제합니다.
+개발 전용은 package scope를 뜻하며 Git ignore 동작이 아닙니다. `plan/`, `report/`, `data/`는
+blanket-ignore하지 않으므로 privacy, license, 용량 규칙이 허용할 때만 commit합니다. 개발·배포
+디렉토리는 공개 가능한 code 핵심입니다.
 
 ## 설치와 실행
 
@@ -58,9 +60,8 @@ claude --version
 ./orchestrate claude --preset quality
 ```
 
-`init`은 Claude를 checkout 기본값으로 저장합니다. 다른 backend를 명시적으로 실행하면 현재는
-경고 후 허용되지만 code, data, entry script는 공유됩니다. 비교는 별도 checkout에서 수행하고
-동일 working file에 두 provider를 동시에 실행하지 마세요.
+`init`은 checkout을 Claude에 고정합니다. 선택 provider가 root 연구 workspace를 소유하므로 다른
+backend는 launcher가 거부합니다. 비교는 별도 clone 또는 worktree에서 수행하세요.
 
 `doctor`는 file, manifest, setting, provider path, installed CLI capability를 검사합니다. 실제
 runtime dispatch가 요청한 specialist, model, contract를 사용했다는 증거는 아닙니다.

@@ -10,7 +10,7 @@ skills: specialist-core, grounded-research-writing, version-management
 ## Version management
 
 The `version-management` skill arrives preloaded — apply its rules before any write to `report/result.md`,
-`report/discussion.md`, `report/error.md`, or `report/version.md`; the skill text is authoritative. Context priority:
+`report/discussion.md`, `report/issue.md`, or `report/version.md`; the skill text is authoritative. Context priority:
 user prompt > CLAUDE.md > report/discussion.md > agent spec + skills > report/version.md tables.
 
 # Writer agent
@@ -24,7 +24,7 @@ Turn raw doc entries (HYP, EXP, REV, BUG) into clear narrative for humans. Synth
 - Decision discussion documents (drafted for orchestrator's ADRs).
 - README, module docstrings, paper drafts under `docs/`.
 - Figure captions and table descriptions.
-- **Version transition summaries:** condensed archive of report/result.md, report/discussion.md, and report/error.md for `VER-NNN` entries. Summarize, do not copy verbatim. Preserve all key numbers, decisions, and open items.
+- **Version transition summaries:** condensed archive of report/result.md, report/discussion.md, and report/issue.md for `VER-NNN` entries. Summarize, do not copy verbatim. Preserve all key numbers, decisions, and open items.
 
 ## Out of scope
 - Generating new results, numbers, or research claims (experiment-tracker + critic).

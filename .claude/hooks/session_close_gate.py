@@ -14,7 +14,7 @@ import json
 import os
 import sys
 
-WATCH = ['report/discussion.md', 'report/error.md', 'report/result.md', 'report/version.md']
+WATCH = ['report/discussion.md', 'report/issue.md', 'report/result.md', 'report/version.md']
 
 
 def newest_mtime(root):

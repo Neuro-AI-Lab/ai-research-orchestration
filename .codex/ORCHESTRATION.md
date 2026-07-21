@@ -18,6 +18,7 @@ it part of the task.
 9. Codex never reads or writes another provider's roles, rules, skills, state, memory, or hooks.
 10. Any Git action that mutates the index, working tree, refs, history, or a remote requires the
     user's explicit authorization for that exact class of action.
+11. One checkout has one provider owner; a provider switch requires a separate clone or worktree.
 
 ## Git authority boundary
 
@@ -50,13 +51,37 @@ gate decisions, and synthesis throughout the run; it never delegates those respo
 
 ## Roles and ownership
 
+The research checkout has one canonical workspace. “Development-only” means project planning and
+research records, not runtime library code; these files may still be versioned when the user chooses.
+Generated run output is confined to `experiments/runs/`.
+
+| Path | Lifecycle | Primary ownership |
+|---|---|---|
+| `plan/PRD.md` | development-only scope and acceptance contract | root conductor-orchestrator with user approval |
+| `plan/CHECKLIST.md` | development-only stage tracker with evidence pointers | root conductor-orchestrator |
+| `report/discussion.md` | HYP, RES, DATASET, REV, QA, ADR, PLAN, STATE and user-agent discussion | entry owner; root serializes shared writes |
+| `report/issue.md` | BUG and VAL issue log | `qa` for BUG, `critic` for VAL |
+| `report/result.md` | raw EXP records and cleared REPORT summaries | `experiment-tracker`, then `writer` |
+| `report/version.md` | append-only research phase archive | `filemanager` after `writer` condensation |
+| `data/` | dataset assets, manifests, split records, and dataset-specific preprocessing | `data` |
+| `model/` | model architectures, objectives, and model-facing source | `developer` |
+| `experiments/` | experiment entrypoints, configs, launch manifests; generated runs in `runs/` | `developer`; runs owned by `experiment-tracker` |
+| `analysis/` | EDA/analysis source plus reviewed tables and figures | `data` for EDA, `critic` for result analysis |
+| `functionals/` | reusable research pipeline and transformation functions | `developer` |
+| `utils/` | generic infrastructure helpers with no domain policy | `developer` |
+| `tests/` | regression, split-integrity, and reproducibility checks | `developer` adds focused tests; `qa` independently verifies |
+
+Do not duplicate model code in `experiments/`, reusable logic in notebooks, or datasets in run
+directories. Put dataset-specific processing in `data/`; promote reusable transforms to
+`functionals/`. Keep `utils/` generic and dependency-light.
+
 | Role | Owns | Must not do |
 |---|---|---|
 | root conductor-orchestrator | user intent, routing, IDs, gates, conflict resolution, synthesis | delegate coordination or fabricate evidence |
 | brainstorm | literature evidence, hypotheses, method alternatives | code, experiment execution, validation claims |
 | data | dataset provenance, preprocessing, splits, EDA, leakage audit | model implementation or claim approval |
 | critic | adversarial plan/result review, statistical validity | repair the work being reviewed |
-| developer | model/evaluation implementation and focused tests | approve own work or launch research runs |
+| developer | `model/`, experiment code, reusable functions/utilities, and focused tests | approve own work or launch research runs |
 | qa | independent correctness, regression, split and reproducibility verification | implement the main feature or interpret claims |
 | experiment-tracker | approved runs, metadata, monitoring, raw EXP records | change code or decide validity |
 | filemanager | repository structure, environment, version archives | research conclusions or destructive git actions |
@@ -72,9 +97,9 @@ For the root:
 1. Current user request.
 2. `AGENTS.md` and this constitution.
 3. `.codex/memory/conductor/MEMORY.md` and `.codex/state/handoff.json` when present.
-4. `.codex/research/discussion.md` and unresolved gates.
+4. `plan/`, `report/discussion.md`, `report/issue.md`, and unresolved gates.
 5. Relevant artifacts and source evidence.
-6. `.codex/research/version.md` only when history is needed.
+6. `report/version.md` only when history is needed.
 
 For a specialist:
 
@@ -128,18 +153,18 @@ Only these files are authoritative:
 
 | File | Scope | Entry types |
 |---|---|---|
-| `.codex/research/discussion.md` | current research phase | HYP, RES, DATASET, REV, QA, ADR, PLAN, STATE, REPORT |
-| `.codex/research/result.md` | current experimental results | EXP, REPORT |
-| `.codex/research/error.md` | current defects and validity failures | BUG, VAL |
-| `.codex/research/version.md` | append-only archived phases | VER, CLEAN |
+| `plan/PRD.md` | approved scope and acceptance criteria | requirements and constraints |
+| `plan/CHECKLIST.md` | current workflow progress | stage, owner, status, evidence |
+| `report/discussion.md` | current research phase | HYP, RES, DATASET, REV, QA, ADR, PLAN, STATE |
+| `report/result.md` | current experimental results | EXP, REPORT |
+| `report/issue.md` | current defects and validity failures | BUG, VAL |
+| `report/version.md` | append-only archived phases | VER, CLEAN |
 | `.codex/state/handoff.json` | structured session continuity | summary, open items, next actions, runs, pointers |
 | `.codex/memory/<role>/` | durable role lessons | short verified routing/execution lessons only |
 
-The first three Markdown files contain only the current version. Before a version transition,
+The discussion, result, and issue files contain only the current version. Before a version transition,
 `writer` condenses the phase, `filemanager` appends a VER entry, then resets the current files from
-`.codex/templates/research/` while carrying unresolved items forward. Entry counters never reset.
-
-Never create or update same-named research-control documents at repository root.
+`.codex/templates/report/` while carrying unresolved items forward. Entry counters never reset.
 
 ## End-to-end AI research workflow
 
@@ -178,7 +203,7 @@ tests, checks output semantics and split isolation, and writes a QA entry with `
 ### 6. Reproducible execution
 
 Only `experiment-tracker` launches approved runs. Record commit, config, command, seeds, model ID,
-dataset hash, environment, hardware, timing, logs, and failures under `experiments/codex/EXP-NNN/`.
+dataset hash, environment, hardware, timing, logs, and failures under `experiments/runs/EXP-NNN/`.
 One sweep is one EXP with one owner and many process-level sub-runs, never one agent per configuration.
 
 ### 7. Analysis and validity review
@@ -192,8 +217,9 @@ must clear every result before the root reports it as a finding.
 
 Dispatch `writer` with `grounded-research-writing` and `research-paper-workflow`. Build the bibliography
 from verified Zotero items, map every numerical claim to an EXP/REPORT/source ID, and keep unresolved
-review issues visible. Overleaf synchronization uses `.codex/scripts/overleaf_sync.sh`; pull before
-editing, inspect the diff, and never push without explicit user authority.
+review issues visible. Store local claim maps and non-Overleaf drafts under `report/`. Overleaf
+synchronization uses `.codex/scripts/overleaf_sync.sh`; pull only with explicit user authority,
+inspect the diff, and never push without separate explicit authority.
 
 ### 9. Paper review loop
 
@@ -203,7 +229,7 @@ limitations, unresolved issues, reproducibility artifacts, and the exact review 
 
 ## Mandatory gates
 
-An experiment command is allowed only when the current Codex state contains:
+An experiment command is allowed only when the current Codex `report/` state contains:
 
 - a numeric DATASET entry with `**Leakage audit:** passed`;
 - a numeric critic REV with `**Gate:** passed` and no open blocking REV;

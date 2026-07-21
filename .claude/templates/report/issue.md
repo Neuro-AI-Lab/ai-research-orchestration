@@ -1,4 +1,4 @@
-# Claude errors and validity issues
+# Claude research issues
 
 Current-version BUG and VAL entries.
 

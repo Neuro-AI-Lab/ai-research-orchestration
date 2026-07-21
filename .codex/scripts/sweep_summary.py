@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Fan-in a sweep's sub-runs into a markdown comparison table.
 
-Usage: python3 .codex/scripts/sweep_summary.py experiments/codex/EXP-NNN
+Usage: python3 .codex/scripts/sweep_summary.py experiments/runs/EXP-NNN
 
-Reads experiments/codex/EXP-NNN/runs/*/status.json (written by run_with_status.sh) and, when present,
+Reads experiments/runs/EXP-NNN/runs/*/status.json (written by run_with_status.sh) and, when present,
 runs/*/metrics.json (flat {"metric": number} written by the evaluation step). Prints a markdown
 table sorted by run tag: | run | state | exit | <metric columns...> |. Failed runs are kept in
 the table — dropping them silently would misrepresent the sweep.

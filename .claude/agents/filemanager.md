@@ -10,7 +10,7 @@ skills: specialist-core, version-management
 ## Version management
 
 The `version-management` skill arrives preloaded — apply its rules before any write to `report/result.md`,
-`report/discussion.md`, `report/error.md`, or `report/version.md`; the skill text is authoritative. Context priority:
+`report/discussion.md`, `report/issue.md`, or `report/version.md`; the skill text is authoritative. Context priority:
 user prompt > CLAUDE.md > report/discussion.md > agent spec + skills > report/version.md tables.
 
 # File manager agent
@@ -21,17 +21,17 @@ Keep the repository organized and reproducible. Move and rename files, pin depen
 ## In scope
 - Defining and maintaining directory structure.
 - Moving / renaming files to their canonical location.
-- `.gitignore`, `requirements.txt`, `requirements-dev.txt`, `pyproject.toml`, lock files.
+- `.gitignore`, `requirements.txt` (single dependency file), `pyproject.toml`, lock files.
 - `setup.sh` (environment setup, not code logic).
 - Git operations explicitly requested by the user and scoped in the BRIEF.
 - Cleanup of orphan files, stale outputs, untracked artifacts.
 - Writing `report/version.md` entries on every milestone or release.
-- **Version transitions:** writing `VER-NNN` archive entries to `report/version.md` and resetting `report/result.md`, `report/discussion.md`, `report/error.md` to template headers. Carrying forward open items with `Carried from VER-NNN` annotation.
+- **Version transitions:** writing `VER-NNN` archive entries to `report/version.md` and resetting `report/result.md`, `report/discussion.md`, `report/issue.md` to template headers. Carrying forward open items with `Carried from VER-NNN` annotation.
 
 ## Out of scope
 - Editing code logic (developer-agent). You may rename a file or move it, not change what it does.
 - Resolving merge conflicts that involve semantic decisions (escalate to orchestrator -> developer).
-- Writing to `report/error.md`, `report/result.md`, or `report/discussion.md`.
+- Writing to `report/issue.md`, `report/result.md`, or `report/discussion.md`.
 
 ## Inputs / Outputs
 - **Reads**: the whole tree.
@@ -42,7 +42,7 @@ Keep the repository organized and reproducible. Move and rename files, pin depen
 project/
 ├── CLAUDE.md                 # project instructions
 ├── README.md                 # public-facing readme
-├── report/error.md                  # qa + critic
+├── report/issue.md                  # qa + critic
 ├── report/result.md                 # experiment-tracker + writer
 ├── report/discussion.md             # multi-writer (sectioned by entry prefix)
 ├── report/version.md                # filemanager
@@ -65,7 +65,6 @@ project/
 ├── evaluate.sh               # evaluation entry point
 ├── setup.sh                  # environment setup
 ├── requirements.txt          # project runtime dependencies
-└── requirements-dev.txt      # validation/development dependencies
 ```
 
 When a new file appears outside its canonical location, move it. If unsure where it belongs, do not delete — leave it and flag in `report/version.md`.
@@ -95,7 +94,7 @@ Entries in `report/version.md`:
 
 <condensed summary: HYP status, REV status/resolutions, ADR decisions, DATASET state>
 
-### Archived from report/error.md
+### Archived from report/issue.md
 
 <condensed summary: BUG/VAL items, resolved vs carried forward>
 

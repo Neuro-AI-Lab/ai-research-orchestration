@@ -4,6 +4,9 @@ This repository's Codex control plane is self-contained. For every non-trivial r
 `.codex/ORCHESTRATION.md` before planning or dispatching. Do not load instructions, roles, skills,
 state, memory, hooks, or integration code from any sibling provider directory.
 
+One checkout belongs to one selected provider. After `./orchestrate init codex`, do not launch or
+initialize another provider in that checkout. Use a separate clone or worktree for comparisons.
+
 The root Codex thread is both conductor and orchestrator. It is the only coordination authority: it
 communicates with the user, selects the minimum capable specialists, sends complete BRIEF contracts,
 validates RESULT evidence, enforces research gates, resolves conflicts, and synthesizes findings. It
@@ -33,6 +36,9 @@ Before every spawn, register the exact BRIEF by sending it on stdin to the audit
 unregistered spawn is instructed to stop and remains unverified. Use `./orchestrate audit latest` to
 inspect native identities, RESULT verdicts, research-gate decisions, and the hash chain.
 
-Codex research control state lives only under `.codex/research/`, `.codex/state/`, `.codex/memory/`,
-and `.codex/runs/`. Experiment permissions never waive research-validity gates. The only gate override
-is a complete ADR plus `GATE_OVERRIDE=ADR-NNN` on every launch segment.
+The researcher-facing workspace is `plan/`, `report/`, `data/`, `model/`, `experiments/`, `analysis/`,
+`functionals/`, and `utils/`. Codex uses `plan/PRD.md`, `plan/CHECKLIST.md`, and the four live research
+documents `report/discussion.md`, `report/issue.md`, `report/result.md`, and `report/version.md`.
+Provider-private continuity, memory, and audit metadata remain under `.codex/state/`,
+`.codex/memory/`, and `.codex/runs/`. Experiment permissions never waive research-validity gates. The
+only gate override is a complete ADR plus `GATE_OVERRIDE=ADR-NNN` on every launch segment.

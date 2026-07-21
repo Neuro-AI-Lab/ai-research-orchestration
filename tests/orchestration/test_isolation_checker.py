@@ -40,20 +40,22 @@ def test_distribution_control_planes_are_isolated():
     assert ISOLATION.provider_isolation_errors() == []
 
 
-def test_cross_provider_reference_fails(monkeypatch, tmp_path):
+def test_codex_canonical_report_reference_is_allowed(monkeypatch, tmp_path):
     configure_fixture(monkeypatch, tmp_path, "Read report/result.md.\n")
+    assert ISOLATION.provider_isolation_errors() == []
+
+
+def test_cross_provider_reference_fails(monkeypatch, tmp_path):
+    configure_fixture(monkeypatch, tmp_path, "Read .claude/agents/critic.md.\n")
     assert any(
         "forbidden provider token" in error
         for error in ISOLATION.provider_isolation_errors()
     )
 
 
-def test_codex_reference_to_claude_plan_fails(monkeypatch, tmp_path):
+def test_codex_canonical_plan_reference_is_allowed(monkeypatch, tmp_path):
     configure_fixture(monkeypatch, tmp_path, "Read plan/PRD.md.\n")
-    assert any(
-        "forbidden provider token" in error
-        for error in ISOLATION.provider_isolation_errors()
-    )
+    assert ISOLATION.provider_isolation_errors() == []
 
 
 def test_codex_reference_to_claude_owned_root_mcp_file_fails(monkeypatch, tmp_path):
@@ -67,11 +69,11 @@ def test_codex_reference_to_claude_owned_root_mcp_file_fails(monkeypatch, tmp_pa
 def test_unscoped_state_and_artifact_paths_fail(monkeypatch, tmp_path):
     configure_fixture(
         monkeypatch, tmp_path,
-        "Read result.md and inspect experiments/EXP-NNN/, then update the root docs.\n",
+        "Read result.md and inspect experiments/codex/EXP-NNN/, then update the root docs.\n",
     )
     errors = ISOLATION.provider_isolation_errors()
     assert any("unscoped research-state" in error for error in errors)
-    assert any("artifact path must be experiments/codex/" in error for error in errors)
+    assert any("legacy workspace path" in error for error in errors)
     assert any("ambiguous research-state label" in error for error in errors)
 
 

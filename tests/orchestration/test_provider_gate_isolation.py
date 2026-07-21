@@ -30,20 +30,17 @@ def test_provider_accepts_its_own_positive_attestations(backend):
     assert proc.returncode == 0, (backend, proc.stderr)
 
 
-@pytest.mark.parametrize("active,other", (("codex", "claude"), ("claude", "codex")))
-def test_provider_ignores_the_other_provider_state(active, other):
+@pytest.mark.parametrize("active", ("codex", "claude"))
+def test_provider_ignores_legacy_provider_private_research_state(active):
     with tempfile.TemporaryDirectory() as root:
-        def state_dir(name):
-            return (os.path.join(root, "report") if name == "claude"
-                    else os.path.join(root, "." + name, "research"))
-        active_dir = state_dir(active)
-        other_dir = state_dir(other)
+        active_dir = os.path.join(root, "report")
+        legacy_dir = os.path.join(root, "." + active, "research")
         os.makedirs(active_dir)
-        os.makedirs(other_dir)
-        for base, discussion in ((active_dir, "# empty\n"), (other_dir, PASSED)):
+        os.makedirs(legacy_dir)
+        for base, discussion in ((active_dir, "# empty\n"), (legacy_dir, PASSED)):
             with open(os.path.join(base, "discussion.md"), "w", encoding="utf-8") as handle:
                 handle.write(discussion)
-            with open(os.path.join(base, "error.md"), "w", encoding="utf-8") as handle:
+            with open(os.path.join(base, "issue.md"), "w", encoding="utf-8") as handle:
                 handle.write("# empty\n")
         payload = json.dumps({
             "tool_name": "Bash", "tool_input": {"command": "./run.sh train"}
@@ -52,7 +49,9 @@ def test_provider_ignores_the_other_provider_state(active, other):
         hook = os.path.join(REPO_ROOT, "." + active, "hooks", "experiment_gate.py")
         proc = subprocess.run(
             [sys.executable, hook], input=payload, text=True, capture_output=True,
-            cwd=REPO_ROOT, env=dict(os.environ, **{variable: root}), check=False,
+            cwd=REPO_ROOT,
+            env=dict(os.environ, ORCHESTRATION_BACKEND=active, **{variable: root}),
+            check=False,
         )
         assert proc.returncode == 2, (active, proc.stderr)
         assert "no DATASET" in proc.stderr

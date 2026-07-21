@@ -3,7 +3,7 @@
 
 Blocks Bash commands that launch experiments (run.sh / evaluate.sh / python model/*.py)
 while any mandatory gate is unmet:
-  - open critical BUG in report/error.md          (QA gate)
+  - open critical BUG in report/issue.md          (QA gate)
   - open blocking REV in report/discussion.md     (critic gate)
   - no passed critic REV in report/discussion.md  (positive critic attestation)
   - no passed QA entry in report/discussion.md    (positive QA attestation)
@@ -38,6 +38,9 @@ _ENV_ASSIGN = r'(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*'
 _INTERPRETER = r'(?:(?:bash|sh|zsh|setsid|nohup|exec|source)\s+|\.\s+)?'
 _PATH_PREFIX = r'(?:\./)?(?:[\w.-]+/)*'
 _SCRIPT_LAUNCH = re.compile(r'^' + _ENV_ASSIGN + _INTERPRETER + _PATH_PREFIX + r'(run|evaluate)\.sh\b')
+_STATUS_WRAPPER_LAUNCH = re.compile(
+    r'^' + _ENV_ASSIGN + _INTERPRETER + _PATH_PREFIX + r'run_with_status\.sh\b'
+)
 _PYTHON_LAUNCH = re.compile(r'^' + _ENV_ASSIGN + r'python[0-9.]*\s+\S*model/\S+\.py')
 
 # Heredoc start marker: `<<WORD`, `<<-WORD` (indented terminator), `<<'WORD'`/`<<"WORD"`
@@ -83,7 +86,8 @@ def _heredoc_shell_launches(cmd):
             continue
         for segment in _split_segments('\n'.join(body)):
             candidate = segment.strip()
-            if _SCRIPT_LAUNCH.match(candidate) or _PYTHON_LAUNCH.match(candidate):
+            if (_SCRIPT_LAUNCH.match(candidate) or _STATUS_WRAPPER_LAUNCH.match(candidate)
+                    or _PYTHON_LAUNCH.match(candidate)):
                 launches.append(header_segment)
     return launches
 
@@ -212,7 +216,8 @@ def find_launch_segments(cmd):
         segment = segment.strip()
         if not segment:
             continue
-        if _SCRIPT_LAUNCH.match(segment) or _PYTHON_LAUNCH.match(segment):
+        if (_SCRIPT_LAUNCH.match(segment) or _STATUS_WRAPPER_LAUNCH.match(segment)
+                or _PYTHON_LAUNCH.match(segment)):
             launches.append(segment)
     return launches
 
@@ -289,7 +294,7 @@ def main():
             return ''
 
     discussion = read('report/discussion.md')
-    error = read('report/error.md')
+    error = read('report/issue.md')
 
     # An override applies only to its own launch segment. Every launch segment must cite
     # a valid ADR for the whole command to bypass the normal gates; missing or incomplete
@@ -326,7 +331,7 @@ def main():
         if (re.match(r'## \[BUG-\d+\]', block)
                 and re.search(r'(?mi)^\*{0,2}Severity:\*{0,2}\s*critical', block)
                 and last_status(block) == 'open'):
-            problems.append(f'open critical {entry_id(block)} in report/error.md')
+            problems.append(f'open critical {entry_id(block)} in report/issue.md')
     for block in entry_blocks(discussion):
         if (re.match(r'## \[REV-\d+\]', block)
                 and re.search(r'(?mi)^\*{0,2}Severity:\*{0,2}\s*blocking', block)

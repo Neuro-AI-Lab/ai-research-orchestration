@@ -3,9 +3,9 @@
 
 Stdout from this hook is added to the session context. It surfaces, mechanically (no LLM):
   - the structured hand-off from the previous session (.codex/state/handoff.json)
-  - open critical BUGs and blocking REVs in .codex/research/
+  - open critical BUGs and blocking REVs in report/
   - the most recent Codex STATE entry
-  - experiment runs still marked running (experiments/codex/*/status.json), with pid liveness,
+  - experiment runs still marked running (experiments/runs/*/status.json), with pid liveness,
     so orphaned long runs are adopted instead of forgotten.
 """
 import json
@@ -69,9 +69,9 @@ def main():
         lines.append('- No hand-off file yet (.codex/state/handoff.json) — first session or '
                      'previous session ended without closing properly.')
 
-    error = read(root, '.codex/research/error.md')
-    discussion = read(root, '.codex/research/discussion.md')
-    bugs = [entry_id(b) for b in entry_blocks(error)
+    issue = read(root, 'report/issue.md')
+    discussion = read(root, 'report/discussion.md')
+    bugs = [entry_id(b) for b in entry_blocks(issue)
             if b.startswith('## [BUG-')
             and re.search(r'(?mi)^\*\*Severity:\*\*\s*critical', b)
             and last_status(b) == 'open']
@@ -103,9 +103,9 @@ def main():
 
     states = re.findall(r'(?m)^## \[(STATE-[0-9-]+)\]', discussion)
     if states:
-        lines.append(f'- Last STATE entry: {states[-1]} (read .codex/research/discussion.md)')
+        lines.append(f'- Last STATE entry: {states[-1]} (read report/discussion.md)')
 
-    exp_dir = os.path.join(root, 'experiments', 'codex')
+    exp_dir = os.path.join(root, 'experiments', 'runs')
     if os.path.isdir(exp_dir):
         for sub in sorted(os.listdir(exp_dir)):
             spath = os.path.join(exp_dir, sub, 'status.json')

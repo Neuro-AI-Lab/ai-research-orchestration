@@ -14,8 +14,8 @@ Use this cycle:
 1. `writer` creates an outline with claim/evidence links and explicit limitation slots.
 2. Inspect Overleaf repository status. Pull with `.codex/scripts/overleaf_sync.sh` only when the user
    explicitly authorized that sync action; otherwise report remote freshness as unresolved.
-3. Draft methods from code/config and results from cleared records; retain provenance in comments or a
-   local claim map without exposing secrets.
+3. Draft methods from code/config and results from cleared records; retain provenance in comments or
+   a claim map under `report/` without exposing secrets.
 4. `critic` reviews scientific validity, novelty calibration, related-work coverage, and claim strength.
 5. `qa` verifies citations, figure/table source data, cross-references, compilation, artifact links, and
    that every revision addresses the recorded review.

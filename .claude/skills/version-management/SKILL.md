@@ -2,10 +2,10 @@
 name: version-management
 description: >-
   Manage the four-document version lifecycle: report/result.md (current version results),
-  report/discussion.md (current version hypotheses, reviews, decisions), report/error.md (current
+  report/discussion.md (current version hypotheses, reviews, decisions), report/issue.md (current
   version bugs and validity issues), report/version.md (historical archive). Trigger this
   skill when a version bump is needed, when archiving current work before a new
-  phase, or when any agent writes to report/result.md, report/discussion.md, or report/error.md. Every
+  phase, or when any agent writes to report/result.md, report/discussion.md, or report/issue.md. Every
   agent must cognize these rules before writing to any report file.
 ---
 
@@ -17,12 +17,12 @@ description: >-
 |:-----|:------|:---------|:-----------------------|
 | `report/result.md` | Current version only | Experiment results (EXP) and narrative summaries (REPORT) | Yes (archived first) |
 | `report/discussion.md` | Current version only | Hypotheses, reviews, datasets, QA attestations, plans, decisions, state (HYP/RES/DATASET/REV/QA/ADR/PLAN/STATE/REPORT) | Yes (archived first) |
-| `report/error.md` | Current version only | Bugs (BUG, filed by qa) and validity issues (VAL, filed by critic) | Yes (archived first) |
+| `report/issue.md` | Current version only | Bugs (BUG, filed by qa) and validity issues (VAL, filed by critic) | Yes (archived first) |
 | `report/version.md` | All versions | Historical archive of all past working-doc content, errors, decisions | No (append-only) |
 
 ## Rules (every agent must follow)
 
-### Rule 1: report/result.md, report/discussion.md, and report/error.md are current-version only
+### Rule 1: report/result.md, report/discussion.md, and report/issue.md are current-version only
 - These files contain ONLY the latest version's content.
 - They are the working documents for the active version.
 - Old entries from previous versions must never accumulate here.
@@ -33,13 +33,13 @@ description: >-
 - Each archived version is stamped with `## [VER-NNN] <title> | YYYY-MM-DD`.
 
 ### Rule 3: archive before reset
-- Before starting a new version, the current report/result.md, report/discussion.md, and report/error.md content MUST be archived into report/version.md first.
+- Before starting a new version, the current report/result.md, report/discussion.md, and report/issue.md content MUST be archived into report/version.md first.
 - Only then may the three working docs be cleared and reset for the new version.
 - Unresolved items (open BUGs, open REVs, active HYPs, active DATASETs, pending experiments) carry forward into the new version's docs with a `Carried from VER-NNN` annotation.
 
-### Rule 4: bugs and validity issues belong in report/error.md
-- Bugs (BUG-NNN, filed by qa) and validity issues (VAL-NNN, filed by critic) are written to report/error.md for the current version — not to report/discussion.md and not to ad-hoc files.
-- report/error.md follows the same lifecycle as the other working docs: current version only, archived into report/version.md at every version bump, open items carried forward.
+### Rule 4: bugs and validity issues belong in report/issue.md
+- Bugs (BUG-NNN, filed by qa) and validity issues (VAL-NNN, filed by critic) are written to report/issue.md for the current version — not to report/discussion.md and not to ad-hoc files.
+- report/issue.md follows the same lifecycle as the other working docs: current version only, archived into report/version.md at every version bump, open items carried forward.
 
 ### Rule 5: agent context priority
 - Every agent must read context in this priority order (per CLAUDE.md):
@@ -59,17 +59,17 @@ Step 1: Archive current version
     a. Summary of what this version accomplished (condensed by writer)
     b. Condensed content of report/result.md (results, metrics, findings)
     c. Condensed content of report/discussion.md (hypotheses, decisions, reviews)
-    d. Condensed content of report/error.md (BUG/VAL items, resolved vs carried)
+    d. Condensed content of report/issue.md (BUG/VAL items, resolved vs carried)
     e. Environment snapshot (deps, hardware, git state)
 
 Step 2: Reset working documents
   - Clear report/result.md to fresh template (header + empty summary tables)
   - Clear report/discussion.md to fresh template (header + carried-forward items only)
-  - Clear report/error.md to fresh template (header + carried-forward open BUG/VAL items)
+  - Clear report/issue.md to fresh template (header + carried-forward open BUG/VAL items)
 
 Step 3: Begin new version
   - report/result.md starts with clean summary tables
-  - report/discussion.md and report/error.md start with only unresolved carry-forward items,
+  - report/discussion.md and report/issue.md start with only unresolved carry-forward items,
     each annotated `Carried from VER-NNN`
 ```
 
@@ -91,8 +91,8 @@ A version represents a coherent phase of work. Examples:
 
 ## Anti-patterns (do not do these)
 
-1. **Rewriting report/result.md, report/discussion.md, or report/error.md without archiving first** -- this loses history.
-2. **Filing bugs or validity issues outside report/error.md** -- BUG/VAL entries scattered across report/discussion.md or ad-hoc files break the gate checks that grep report/error.md.
+1. **Rewriting report/result.md, report/discussion.md, or report/issue.md without archiving first** -- this loses history.
+2. **Filing bugs or validity issues outside report/issue.md** -- BUG/VAL entries scattered across report/discussion.md or ad-hoc files break the gate checks that grep report/issue.md.
 3. **Accumulating entries from multiple versions in the working docs** -- leads to unreadable walls of text.
 4. **Skipping the archive step** -- report/version.md must always contain the full history.
 5. **Ignoring user prompt in favor of document context** -- user prompt is always highest priority.

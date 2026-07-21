@@ -16,10 +16,13 @@ subagent는 없으며 specialist가 추가 위임 계층을 만들면 안 됩니
 | `.codex/fleets/` | `quality`, `balanced`, `fast` specialist 설정 |
 | `.agents/skills/` | 재사용 가능한 연구 절차 |
 | `.codex/scripts/` | 문헌, Zotero, Overleaf, run status, audit 도구 |
-| `experiments/codex/`, `analysis/codex/` | 생성되는 provider-owned artifact |
+| `plan/`, `report/`, `data/` | 추적되는 연구 계획, 근거/state, dataset, preprocessing asset |
+| `model/`, `experiments/`, `analysis/` | model source, experiment code/config, 분석 code와 검토 산출물 |
+| `functionals/`, `utils/` | 재사용 연구 함수와 일반 utility |
+| `experiments/runs/` | ignore되는 생성 run, log, checkpoint, metric |
 
-초기화는 ignored setting, research state, memory, handoff, run record를 만듭니다. 이는 local 연구
-데이터이며 배포 내용이 아닙니다.
+초기화는 ignored setting, memory, handoff, audit record를 만들고 누락된 clean workspace file을
+채웁니다. Provider-private runtime data는 배포 내용이 아닙니다.
 
 ## 설치와 실행
 
@@ -36,9 +39,8 @@ codex --version
 ./orchestrate codex --preset quality
 ```
 
-`init`은 Codex를 checkout 기본값으로 저장합니다. 다른 backend를 명시적으로 실행하면 현재는
-경고 후 허용되지만 code, data, entry script는 공유됩니다. 비교는 별도 checkout에서 수행하고
-동일 working file에 두 provider를 동시에 실행하지 마세요.
+`init`은 checkout을 Codex에 고정합니다. 선택 provider가 root 연구 workspace를 소유하므로 다른
+backend 요청은 fail-closed로 거부합니다. Provider 비교마다 별도 clone 또는 worktree를 사용하세요.
 
 `doctor`는 정적 설정, 선택 model, hook, local state, MCP server handshake, provider path 격리를
 검사합니다. 설치된 native runtime이 spawn agent를 요청한 custom role에 실제로 연결했다는 증거는
@@ -86,22 +88,40 @@ Specialist role만 override할 수 있으며 root coordination은 fleet row가 �
 sandbox를 제거하므로 외부 격리 경계 안에서만 사용합니다. Permission mode는 critic, QA,
 leakage, RESULT, experiment gate가 실행됐다는 근거가 아닙니다. 각각의 기록된 근거를 확인하세요.
 
-Safe mode에서는 `.codex/` 아래 ignored state 기록에 좁은 승인을 요청할 수 있습니다. 정확한
-경로를 확인하고 무관하거나 광범위한 filesystem access는 승인하지 마세요.
+Safe mode에서는 `.codex/` 아래 provider-private state 기록에 좁은 승인을 요청할 수 있습니다.
+정확한 경로를 확인하고 무관하거나 광범위한 filesystem access는 승인하지 마세요.
+
+## Workspace와 파일 소유권
+
+| 경로 | 소유자 | 내용 |
+|---|---|---|
+| `plan/PRD.md`, `plan/CHECKLIST.md` | root conductor-orchestrator | 사용자 승인 scope, acceptance criterion, stage/evidence tracker |
+| `report/discussion.md` | entry owner; root가 직렬화 | HYP, RES, DATASET, REV, QA, ADR, PLAN, STATE, 사용자-agent 논의 |
+| `report/issue.md` | `qa`, `critic` | BUG와 연구 타당성 VAL entry |
+| `report/result.md`, `report/version.md` | tracker/writer, filemanager | EXP/REPORT record와 append-only phase archive |
+| `data/` | `data` | raw/interim/processed asset, manifest, split, dataset-specific preprocessing |
+| `model/` | `developer` | model architecture, objective, model-facing source |
+| `experiments/` | developer, 이후 tracker | 추적 entrypoint/config; 생성 근거는 `runs/EXP-NNN/`에만 저장 |
+| `analysis/` | data, 이후 critic | EDA·추론 분석 code, 검토된 table과 figure |
+| `functionals/`, `utils/` | `developer` | domain pipeline function; 일반 dependency-light helper |
+
+재사용 preprocessing은 notebook이나 run directory에 복제하지 말고 `functionals/`에 둡니다.
+`data/`, `plan/`, `report/`는 blanket-ignore하지 않으므로 commit 전에 연구 프로젝트의 data license,
+privacy, 용량 정책을 적용합니다.
 
 ## 연구 workflow
 
 | 단계 | Specialist | 필수 근거 |
 |---|---|---|
-| 문헌 | `brainstorm` | primary-source map, stable ID, caveat |
+| 문헌 | `brainstorm` | `report/literature/`, `report/discussion.md`의 RES/HYP |
 | 가설 | `brainstorm` | prediction, falsifier, baseline, metric, effect threshold |
 | 계획 심사 | `critic` | 해결 조건이 있는 passed/blocked REV |
-| 데이터 | `data` | 출처, license, split unit, hash, leakage audit |
-| 구현 | `developer` | 승인 범위, config, deterministic test |
-| 독립 QA | `qa` | 실제 diff·명령 검사와 passed/blocked QA |
-| 실행 | `experiment-tracker` | code/data/config provenance, seed, log, failure |
-| 분석 | `critic` | effect size, uncertainty, sensitivity, limitation |
-| 작성 | `writer` | claim-evidence map과 검증 reference |
+| 데이터 | `data` | `data/`, DATASET provenance/hash와 leakage audit |
+| 구현 | `developer` | `model/`, `experiments/`, `functionals/`, `utils/`, test |
+| 독립 QA | `qa` | discussion의 QA, `report/issue.md`의 BUG |
+| 실행 | `experiment-tracker` | `experiments/runs/EXP-NNN/`, result의 EXP |
+| 분석 | `critic` | `analysis/`, effect size, uncertainty, sensitivity, limitation |
+| 작성 | `writer` | `report/` claim map/draft와 검증 reference |
 | 최종 검토 | `critic`, 이후 `qa` | scientific·artifact·citation clearance |
 
 모든 dispatch는 BRIEF -> RESULT를 사용합니다. 의존 단계는 실제 RESULT와 검증 artifact로만 만든
@@ -132,9 +152,10 @@ MCP를 사용해. DOI/arXiv/PMID로 중복을 제거하고 abstract 근거와 fu
 
 ```text
 승인된 HYP-<id>, REV-<id>, DATASET-<id>로 developer를 spawn해 explicit config, seed, train/test 경계,
-test, resume point가 있는 baseline/treatment 최소 구현을 만들어. 연구 실험은 실행하지 마. 이후
-qa를 독립 spawn해 실제 diff와 명시된 check를 실행하게 해. 두 native ID와 RESULT를 모두 보고하고
-test를 약화하거나 실패를 숨기지 마.
+test, resume point가 있는 baseline/treatment 최소 구현을 만들어. Model source는 model/, experiment
+entrypoint/config는 experiments/, 재사용 연구 logic은 functionals/, 일반 helper는 utils/에 둬.
+연구 실험은 실행하지 마. 이후 qa를 독립 spawn해 실제 diff와 명시된 check를 실행하게 해. 두
+native ID와 RESULT를 모두 보고하고 test를 약화하거나 실패를 숨기지 마.
 ```
 
 ### 실험과 분석 요청문
@@ -142,8 +163,9 @@ test를 약화하거나 실패를 숨기지 마.
 ```text
 EXP-<id> 전에 passed DATASET, critic, QA entry를 확인하고 blocker가 있으면 중단해.
 experiment-tracker를 spawn해 승인 command만 실행하고 commit, dirty state, config, seed, model,
-dataset hash, environment, hardware, log, metric, failure를 기록해. Raw result가 나온 뒤 critic을
-spawn해 sample size, paired structure, effect size, uncertainty, multiple comparison, failed run,
+dataset hash, environment, hardware, log, metric, failure를 experiments/runs/EXP-<id>/에 기록해. Raw
+result가 나온 뒤 critic을 spawn해 analysis/ code와 sample size, paired structure, effect size,
+uncertainty, multiple comparison, failed run,
 sensitivity, practical significance, limitation을 보고하게 해.
 ```
 
@@ -209,12 +231,13 @@ path는 저장하지 않습니다. Remote attestation이 아니라 private local
 현재 중요한 경계:
 
 - `doctor`와 release test는 필요하지만 native smoke test를 대체하지 않습니다.
-- Codex `Stop` hook은 turn scope입니다. 모든 Stop을 session close로 해석하는 continuity hook은
-  research state 또는 experiment heartbeat가 handoff보다 최신일 때 반복될 수 있습니다. 이를
-  scientific failure로 해석하지 말고 handoff를 갱신한 뒤 반복 차단을 runtime compatibility
-  문제로 보고하세요.
+- Codex `Stop`은 turn scope입니다. 배포된 continuity hook은 handoff freshness를 기록하지만 일반
+  turn을 차단하지 않습니다. 다음 SessionStart가 `report/`와 `experiments/runs/`에서 critical gate와
+  실행 중 job을 재구성합니다.
 - `run_with_status.sh`는 process state, heartbeat, log, exit code만 기록합니다. 그 자체로 research
-  gate 통과나 완전한 reproducibility record를 증명하지 않습니다.
+  gate 통과나 완전한 reproducibility record를 증명하지 않습니다. Sweep은
+  `run_with_status.sh EXP-NNN --tag RUN-TAG -- <command>`로 sub-run을 구분하고 EXP 경로에
+  `sweep_summary.py`를 실행합니다.
 - Local audit의 `Status: completed` 뒤에 새 event가 있다면 process 종료 증거로 사용하지 마세요.
   Event 순서와 unverified claim을 함께 검사합니다.
 

@@ -13,7 +13,8 @@ Tracked source에는 provider 정책, role spec, clean template, hook, script, s
 다음 live/local 자료는 배포하지 않습니다.
 
 - provider research state, memory, handoff, setting, run ledger;
-- dataset, 생성된 run·analysis output, checkpoint, paper clone, reading note;
+- private·무허가·과대 dataset, 생성 run output, 미검토 analysis artifact, checkpoint, paper clone,
+  private reading note;
 - credential, credential 포함 Git remote, transcript, benchmark workspace, bug diary, maintainer
   validation report.
 
@@ -29,13 +30,13 @@ file을 untrack하지 않는다는 점에 주의하세요.
 |---|---|---|
 | 진입 정책 | `AGENTS.md` | `CLAUDE.md` |
 | runtime file | `.codex/`, `.agents/skills/` | `.claude/`, `.mcp.json` |
-| live plan/state | `.codex/research/` | `plan/`, `report/` |
-| 생성 artifact | `experiments/codex/`, `analysis/codex/` | `experiments/runs/`, `analysis/` |
+| checkout 연구 workspace | `plan/`, `report/`, `data/`, `model/`, `experiments/`, `analysis/`, `functionals/`, `utils/` | 같은 canonical layout이며 해당 checkout이 이 provider를 선택했을 때만 소유 |
+| provider-private 연속성 | `.codex/state/`, `.codex/memory/`, `.codex/runs/` | `.claude/state/`, `.claude/agent-memory/`, `.claude/runs/` |
 | 사용자 가이드 | `docs/orchestration/CODEX*` | `docs/orchestration/CLAUDE*` |
 
 한 provider의 role, prompt, hook, state, memory, setting, audit claim을 다른 provider에 import하지
-마세요. Shared project code와 data는 shared control plane이 아닙니다. Launcher는 non-default
-backend 명시 실행을 경고 후 허용할 수 있지만, provider 비교와 release 검증은 별도 clean
+마세요. Root project workspace는 collaboration surface가 아니라 checkout-bound 영역입니다.
+`init` 이후 launcher는 다른 provider를 거부하며 provider 비교와 release 검증은 별도 clean
 checkout을 사용합니다.
 
 ## 문서 정책
@@ -84,7 +85,8 @@ git worktree add ../orchestration-release -b release/<version>
 cd ../orchestration-release
 ```
 
-두 provider의 clean research·memory template을 검사합니다. Live setting, state, run, experiment,
+두 provider의 clean `templates/plan/`, `templates/report/`, memory template을 검사합니다. Live
+setting, state, run, experiment,
 paper clone, local evaluation history가 배포 후보에 없는지 확인합니다. 전체 검사를 실행하고 전체
 diff를 검토하며 `git add -A` 대신 대상 path만 명시적으로 stage합니다.
 
@@ -93,7 +95,8 @@ Release gate는 다음을 거부해야 합니다.
 - repository root의 legacy shared research-control 문서;
 - cross-provider runtime reference;
 - clean template의 실제 research entry;
-- tracked live state, memory, setting, run, experiment, credential;
+- 배포되는 `plan/`·`report/` seed의 실제 entry, tracked provider-private state, memory, setting,
+  생성 run, credential;
 - missing provider role, malformed setting, broken documentation link, empty script, diff error;
 - real session으로 확인되지 않은 runtime verification을 주장하는 public 문서.
 

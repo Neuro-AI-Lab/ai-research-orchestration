@@ -13,7 +13,8 @@ skills, launcher code, tests, and the consolidated documentation in `docs/orches
 Never distribute live or local material:
 
 - provider research state, memory, handoffs, settings, or run ledgers;
-- datasets, generated run/analysis outputs, checkpoints, paper clones, or reading notes;
+- private, unlicensed, or oversized datasets; generated run outputs, unreviewed analysis artifacts,
+  checkpoints, paper clones, or private reading notes;
 - credentials, credential-bearing Git remotes, transcripts, benchmark workspaces, bug diaries, or
   maintainer validation reports.
 
@@ -29,14 +30,14 @@ Runtime control surfaces remain independent even though the source distribution 
 |---|---|---|
 | entry policy | `AGENTS.md` | `CLAUDE.md` |
 | runtime files | `.codex/`, `.agents/skills/` | `.claude/`, `.mcp.json` |
-| live planning/state | `.codex/research/` | `plan/`, `report/` |
-| generated artifacts | `experiments/codex/`, `analysis/codex/` | `experiments/runs/`, `analysis/` |
+| checkout research workspace | `plan/`, `report/`, `data/`, `model/`, `experiments/`, `analysis/`, `functionals/`, `utils/` | same canonical layout, owned only when that checkout selects this provider |
+| provider-private continuity | `.codex/state/`, `.codex/memory/`, `.codex/runs/` | `.claude/state/`, `.claude/agent-memory/`, `.claude/runs/` |
 | user guide | `docs/orchestration/CODEX*` | `docs/orchestration/CLAUDE*` |
 
 Do not import one provider's roles, prompts, hooks, state, memory, settings, or audit claims into the
-other. Shared project code and data are not a shared control plane. The launcher may explicitly start
-a non-default backend with a warning; release and research validation should still use separate clean
-checkouts when comparing providers.
+other. The root project workspace is checkout-bound, not a collaboration surface. After `init`, the
+launcher refuses the other provider; release and research comparisons require separate clean
+checkouts.
 
 ## Documentation policy
 
@@ -85,7 +86,8 @@ git worktree add ../orchestration-release -b release/<version>
 cd ../orchestration-release
 ```
 
-Inspect both providers' clean research and memory templates. Confirm live settings, state, runs,
+Inspect both providers' clean `templates/plan/`, `templates/report/`, and memory templates. Confirm
+live settings, state, runs,
 experiments, paper clones, and local evaluation history are absent from distribution candidates. Run
 all checks above, review the complete diff, and stage explicit paths rather than `git add -A`.
 
@@ -94,7 +96,8 @@ The release gate must reject:
 - legacy shared research-control documents at repository root;
 - cross-provider runtime references;
 - real research entries in clean templates;
-- tracked live state, memory, settings, runs, experiments, or credentials;
+- real entries in the shipped `plan/` or `report/` seeds; tracked provider-private state, memory,
+  settings, generated runs, or credentials;
 - missing provider roles, malformed settings, broken documentation links, empty scripts, or diff
   errors;
 - public documentation that claims runtime verification not established by a real session.

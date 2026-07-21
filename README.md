@@ -24,14 +24,17 @@ Korean guides are available beside each English document.
 
 Use a dedicated checkout and initialize its default provider:
 
+For Codex
 ```bash
 git clone <this-repo> my-research
 cd my-research
 ./orchestrate init codex       # or: ./orchestrate init claude
 ./orchestrate doctor codex     # use the same provider
-./orchestrate codex --preset quality --dry-run
 ./orchestrate codex --preset quality
 ```
+For CLAUDE, you can type `./orchestrate claude --preset quality` analogous to codex
+
+Cheaper presets are selectable per session — `./orchestrate claude|codex --preset balanced|fast`
 
 `init` creates provider-private local state, completes any missing workspace seeds, and binds the
 checkout to that provider. It will refuse the other provider in the same checkout.

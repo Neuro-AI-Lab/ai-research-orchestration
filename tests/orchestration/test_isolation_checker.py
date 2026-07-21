@@ -41,7 +41,15 @@ def test_distribution_control_planes_are_isolated():
 
 
 def test_cross_provider_reference_fails(monkeypatch, tmp_path):
-    configure_fixture(monkeypatch, tmp_path, "Read .claude/research/result.md.\n")
+    configure_fixture(monkeypatch, tmp_path, "Read report/result.md.\n")
+    assert any(
+        "forbidden provider token" in error
+        for error in ISOLATION.provider_isolation_errors()
+    )
+
+
+def test_codex_reference_to_claude_plan_fails(monkeypatch, tmp_path):
+    configure_fixture(monkeypatch, tmp_path, "Read plan/PRD.md.\n")
     assert any(
         "forbidden provider token" in error
         for error in ISOLATION.provider_isolation_errors()

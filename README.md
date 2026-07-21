@@ -1,251 +1,90 @@
-# AI Research Orchestration System
+# AI Research Orchestration
 
 **English** | [한국어](README.ko.md)
 
-A provider-selectable template for running AI/ML research as a staged, reviewable workflow. Instead of
-asking one agent to handle everything, it separates literature review, hypothesis design, data checks,
-implementation, independent verification, experiments, analysis, reference management, and paper
-review into explicit roles and gates.
+A source distribution for running AI/ML research through explicit specialist roles, evidence
+contracts, and review gates. It covers literature review, hypothesis design, data integrity,
+implementation, independent QA, experiments, analysis, references, and paper review.
 
-The template organizes work and makes its provenance visible. It does not guarantee that a scientific
-claim is true, and it does not make Codex and Claude collaborate. Choose one backend for each checkout.
+This repository contains two independent provider implementations. Select one as the default for a
+research checkout; they do not collaborate or share research state. For the strongest isolation, use
+separate clones or worktrees when comparing providers.
 
-## What you get
+## Choose a provider
 
-| Research need | What this repository provides |
-|---|---|
-| Plan a study | literature, hypothesis, feasibility, and critic stages |
-| Protect evaluation validity | dataset provenance, leakage checks, critic and QA gates |
-| Build and run reproducibly | separated implementation/execution roles, configs, seeds, logs, and status tools |
-| Analyze without hiding uncertainty | effect-size, uncertainty, failed-run, sensitivity, and limitation checks |
-| Manage papers | Zotero-backed references, Overleaf Git workflow, scientific and artifact review |
-| Verify orchestration | returned runtime identities and RESULT evidence; Codex also provides a native local audit ledger |
-
-## Choose one backend
-
-| | CODEX | CLAUDE |
+| Provider | Coordination | User guide |
 |---|---|---|
-| Coordination | the root Codex session directly coordinates specialists | Claude uses its own lead-agent routing |
-| Runtime evidence | native agent IDs, BRIEF/RESULT verdicts, and a local hash-chained audit | returned agent/thread IDs and RESULT evidence |
-| Control files | `AGENTS.md`, `.codex/`, `.agents/skills/` | `CLAUDE.md`, `.mcp.json`, `.claude/` |
-| Best selection rule | choose when your deployment runs Codex | choose when your deployment runs Claude Code |
+| Codex | the root session is intended to coordinate direct specialists | [Codex guide](docs/orchestration/CODEX.md) |
+| Claude Code | provider-owned lead-agent routing and specialists | [Claude guide](docs/orchestration/CLAUDE.md) |
 
-Both backends ship `quality`, `balanced`, and `fast` fleets and the same baseline research stages.
-Their runtime rules, state, memory, integrations, and evidence stores remain independent. If you want
-to compare them, create two clones or worktrees rather than switching one active checkout.
+Maintainer and release procedures are in the [maintainer guide](docs/orchestration/MAINTAINERS.md).
+Korean guides are available beside each English document.
 
 ## Quick start
 
-The following creates a Codex checkout, verifies it, and opens the research session:
+Use a dedicated checkout and initialize its default provider:
 
 ```bash
-git clone <this-repo> my-research-codex
-cd my-research-codex
-./orchestrate init codex
-./orchestrate doctor codex
+git clone <this-repo> my-research
+cd my-research
+./orchestrate init codex       # or: ./orchestrate init claude
+./orchestrate doctor codex     # use the same provider
+./orchestrate codex --preset quality --dry-run
 ./orchestrate codex --preset quality
 ```
 
-A healthy setup ends the doctor report with `0 failure(s), 0 warning(s)`. For Claude, use a different
-checkout and replace `codex` with `claude`. Start with `quality` unless speed or cost is more important
-than maximum reasoning effort.
+`init` creates ignored provider-owned local state and saves a default. An explicit launch of the
+other provider is allowed with a warning because data, evaluation, and entry-point paths remain
+shared; do not run both providers concurrently on the same files.
 
-Once the provider session opens, describe the research question, constraints, evidence standard, and
-desired stopping point. Copy-ready requests for literature review, ideation, implementation, QA,
-analysis, Zotero, and Overleaf are in the [AI research prompt book](docs/AI_RESEARCH_PROMPTS.md).
+`doctor` validates files, configuration, CLI capabilities, and local MCP handshakes. It is not proof
+that a native specialist received the selected role, BRIEF, or RESULT contract. Before substantive
+research, run the provider guide's one-specialist smoke test and inspect the returned runtime identity
+and evidence.
 
-## Documentation map
-
-| When you need to... | Read |
-|---|---|
-| install and launch the first checkout | [Setup](SETUP.md) |
-| copy a research workflow request | [AI research prompt book](docs/AI_RESEARCH_PROMPTS.md) |
-| check exactly what is implemented | [Feature reference](docs/FEATURES.md) |
-| check OS, CLI, and tool requirements | [Compatibility](docs/COMPATIBILITY.md) |
-| configure credentials or permission modes safely | [Security policy](SECURITY.md) |
-| prepare a distribution release | [Release guide](docs/RELEASING.md) |
-
-## Isolation by design
-
-`./orchestrate init <backend>` records the selected backend in ignored local configuration and creates
-only that backend's live state. The two systems are alternatives, not collaborators.
-
-| Boundary | CODEX checkout | CLAUDE checkout |
-|---|---|---|
-| Entry policy | `AGENTS.md` | `CLAUDE.md` |
-| Control plane | `.codex/`, `.agents/skills/` | `CLAUDE.md`, `.mcp.json`, `.claude/` |
-| Live research | `.codex/research/` | `.claude/research/` |
-| Memory and handoff | `.codex/memory/`, `.codex/state/` | `.claude/agent-memory/`, `.claude/state/` |
-| Generated artifacts | `experiments/codex/`, `analysis/codex/` | `experiments/claude/`, `analysis/claude/` |
-
-The permission default is `safe`. `--permissions bypass --allow-unsafe-bypass` removes local
-approval/sandbox boundaries, so use it only inside a researcher-controlled external container or VM.
-It never disables critic, QA, leakage, or other research gates.
-
-## CODEX
-
-The root Codex session is both conductor and orchestrator. It interprets the user's intent, selects a
-minimal team, registers each BRIEF, dispatches native specialists directly, evaluates RESULTs, enforces
-gates, resolves conflicts, and produces the final synthesis. There is no conductor or orchestrator
-subagent and specialists cannot delegate.
+## Research workflow
 
 ```text
-user <-> root Codex conductor-orchestrator
-                  |-- brainstorm          literature, ideas, hypotheses
-                  |-- data                provenance, splits, leakage
-                  |-- critic              validity and statistical gates
-                  |-- developer           implementation
-                  |-- qa                  independent verification
-                  |-- experiment-tracker  reproducible execution
-                  |-- filemanager         repository and version hygiene
-                  `-- writer              grounded reports and papers
+literature -> hypothesis -> critic -> data/leakage -> implementation -> QA
+           -> experiment -> analysis/critic -> writing -> artifact/reference review
 ```
 
-The topology is deliberately single-hop: at most four specialists run concurrently, only independent
-work is parallelized, and the root checkpoints before eight total dispatches. This avoids a redundant
-coordination layer while preserving specialist context isolation.
+Delegated work counts only when the runtime returns an agent/thread identity and an evidence-bearing
+RESULT. Search snippets are leads, not citation evidence. Experiments require explicit data, critic,
+and QA clearance, and paper claims must trace to reviewed sources or experiment artifacts.
 
-Launch or inspect the resolved fleet:
+## Permissions and external services
 
-```bash
-./orchestrate codex --preset quality
-./orchestrate codex --preset balanced --role brainstorm=fast
-./orchestrate codex --role critic=gpt-5.6-sol@max
-./orchestrate codex --dry-run
+`safe` is the default. `bypass` removes local approval and sandbox boundaries and is suitable only
+inside a researcher-controlled external container or VM. A permission flag is not evidence that a
+scientific gate ran; verify the gate and runtime report separately.
+
+Implementation, testing, review, documentation, and release preparation authorize working-tree edits
+only. Agents must not stage, branch, commit, pull, push, create or modify a PR, merge, or perform any
+other mutating Git action unless the user explicitly requests that exact action.
+
+Literature search can run without private credentials. Zotero and Overleaf require the account and
+network configuration described in the selected provider guide. Never commit local settings, tokens,
+research state, run ledgers, datasets, generated run/analysis outputs, or paper checkouts.
+
+## Documentation footprint
+
+All detailed distribution documentation is consolidated under `docs/orchestration/` so a consumer
+project can exclude it as one unit:
+
+```gitignore
+/docs/orchestration/
 ```
 
-### MCP integrations
+Git ignores only untracked files. If a project was cloned from this source repository, removing
+already tracked documentation requires an explicit repository change; adding the ignore rule alone
+does not untrack it. Runtime policies such as `AGENTS.md`, `CLAUDE.md`, `.codex/`, and `.claude/` are
+not distribution documentation and must not be removed from a provider that uses them.
 
-Codex loads project MCP servers from `.codex/config.toml`:
+## Scope
 
-- `literature`: `lit_search` and `lit_fetch` for arXiv, OpenAlex, PubMed, and Semantic Scholar;
-- `zotero`: library search, item/full-text retrieval, BibTeX, collections, and optional save-back.
-
-```bash
-./orchestrate codex --preset quality  # review and trust the project on first launch
-# after trust, start a new session and verify from the project directory:
-codex mcp list                        # both rows should be enabled
-```
-
-Project-scoped MCP is loaded only for a trusted repository. A fresh checkout may not list these
-servers until the first trust step. MCP tools are loaded at session start; restart through the
-launcher after trusting the project or changing
-`.codex/config.toml` or `.codex/settings.local.json`; an already-running session does not acquire the
-new tools. Zotero credentials remain optional, but Zotero calls need either its API settings or
-`ZOTERO_LOCAL=1`. Overleaf uses the explicit Git synchronization script rather than MCP.
-
-### Proving that project orchestration was used
-
-Codex's native harness performs the actual spawn. This repository supplies the role specs, skills,
-BRIEF delivery, hooks, gates, and audit ledger. A session launched through `./orchestrate codex`
-receives a run ID; native lifecycle hooks record the root session, runtime-issued agent IDs, delivered
-BRIEF hashes, RESULT verdicts, and research-gate decisions in a hash-chained local ledger.
-
-```bash
-./orchestrate runs list
-./orchestrate audit latest
-./orchestrate audit latest --json
-```
-
-Expected report shape:
-
-```text
-Run: ORCH-YYYYMMDD-001
-Backend: codex
-Fleet: quality
-Topology: root-conductor-direct
-Status: completed
-Event chain: verified
-Conductor-orchestrator: verified
-Specialists:
-  brainstorm  agent-123  BRIEF delivered  RESULT valid
-  critic      agent-456  BRIEF delivered  RESULT valid
-Research gates: 1 allowed, 0 blocked
-Unverified claims: 0
-```
-
-A direct `codex` launch can still read project guidance, but it has no launcher run ID and cannot be
-reported as a verified project-orchestrated run. The ignored `.codex/runs/` ledger stores bounded
-metadata and hashes, not prompt/RESULT bodies, datasets, tokens, or transcript paths.
-
-Copy-ready request:
-
-```text
-Use the Codex quality fleet to orchestrate this research. The root Codex session must act as the sole
-conductor-orchestrator and directly spawn brainstorm -> critic -> data -> developer -> qa in dependency
-order. Register the exact BRIEF before each spawn. Report every native agent ID, RESULT evidence,
-artifacts, verification commands, and unresolved gate. Finish with `./orchestrate audit latest`; do not
-claim that an unverified or failed dispatch succeeded.
-```
-
-Codex details: [.codex/README.md](.codex/README.md),
-[.codex/ORCHESTRATION.md](.codex/ORCHESTRATION.md). Optional integration secrets belong only in the
-ignored `.codex/settings.local.json`. Codex-owned literature, Zotero, long-run, sweep, and Overleaf
-tools live under `.codex/scripts/`.
-
-## CLAUDE
-
-Claude has an independent control plane with its own lead agents, specialist definitions, skills,
-hooks, fleets, prompts, research state, memory, and integrations. It never reads Codex roles, skills,
-state, or audit records.
-
-```bash
-git clone <this-repo> my-research-claude
-cd my-research-claude
-./orchestrate init claude
-./orchestrate doctor claude
-./orchestrate claude --preset quality
-./orchestrate claude --preset fast --role critic=quality
-```
-
-Claude-owned tools and secrets use `.claude/scripts/` and the ignored
-`.claude/settings.local.json`. Its runtime contracts report returned agent/thread identities and
-RESULT evidence. The Codex native ledger is not shared and must not be cited as proof for a Claude
-run. See [.claude/README.md](.claude/README.md).
-
-## AI research workflow
-
-| Stage | Owner | Required output before the next dependent stage |
-|---|---|---|
-| Literature | `brainstorm` | primary-source evidence map, stable IDs, caveats |
-| Hypothesis | `brainstorm` | prediction, falsifier, baseline, metric, effect threshold |
-| Plan review | `critic` | explicit passed/blocked REV and resolution criteria |
-| Data | `data` | provenance, license, split unit, hashes, leakage audit |
-| Implementation | `developer` | accepted scope, immutable config, focused tests |
-| Independent QA | `qa` | inspected diff, executed checks, passed/blocked QA |
-| Experiment | `experiment-tracker` | code/data/config provenance, seeds, logs, failures |
-| Analysis | `critic` | effect size, uncertainty, sensitivity, limitations |
-| Paper | `writer` | claim-evidence map and verified references |
-| Final review | `critic`, then `qa` | scientific and artifact/citation clearance |
-
-Every delegated task uses BRIEF → RESULT; dependent work receives a HANDOFF built only from actual
-RESULTs. Before an experiment, the selected provider's own state must contain a passed DATASET leakage
-audit, critic gate, and QA gate, with no open critical issue. An override requires a complete ADR and
-`GATE_OVERRIDE=ADR-NNN` on every launch segment.
-
-Literature results and abstracts are leads, not verified evidence. Search Zotero first when building
-on a lab library, verify primary-source metadata/full text, preserve contradictions, and never invent
-citations. Pull Overleaf before editing; require critic and QA review before an explicitly authorized
-push.
-
-## Project layout
-
-Most researchers work in `data/`, `models/`, `evaluation/`, `experiments/`, `analysis/`, and
-`papers/`. The provider directories are the orchestration control planes; do not copy roles, state,
-or settings between them. Live state directories are created locally by initialization and remain
-ignored.
-
-```text
-AGENTS.md, .codex/, .agents/skills/   CODEX control plane
-CLAUDE.md, .claude/                   CLAUDE control plane
-.orchestration/                       selector, diagnostics, audit adapter, release checks
-data/, models/, evaluation/           project source owned by the checkout's selected backend
-experiments/<backend>/                run artifacts and status
-analysis/<backend>/                   generated analyses
-papers/notes/<backend>/               reading notes
-docs/                                 distribution guides and paper checkouts
-tests/orchestration/                  current behavior and isolation tests
-```
+The system structures work and makes missing evidence visible; it does not guarantee that a research
+claim is true. Local audit records are tamper-evident metadata, not remotely signed attestations.
 
 ## License
 

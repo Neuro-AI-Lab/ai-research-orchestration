@@ -93,11 +93,11 @@ ask twice. While waiting on a genuine blocker, do not dispatch work that the ans
 A sweep (hyperparameter grid, multi-seed batch, ablation set) is ONE experiment with many
 sub-runs, not many experiments:
 
-- One EXP-ID for the whole sweep. Sub-runs live in `experiments/claude/EXP-NNN/runs/<tag>/`, each with
+- One EXP-ID for the whole sweep. Sub-runs live in `experiments/runs/EXP-NNN/runs/<tag>/`, each with
   its own `status.json` and `run.log` via the status wrapper.
 - **Single writer**: exactly one `experiment-tracker` instance owns the sweep. Sub-runs never
-  write to `.claude/research/result.md`; the tracker writes ONE EXP entry with the comparison table at fan-in
-  (`python3 .claude/scripts/sweep_summary.py experiments/claude/EXP-NNN` builds it).
+  write to `report/result.md`; the tracker writes ONE EXP entry with the comparison table at fan-in
+  (`python3 .claude/scripts/sweep_summary.py experiments/runs/EXP-NNN` builds it).
 - Prefer config-driven variation (one code path, different flags) over code-variant sweeps. When
   variants must change code, dispatch one `developer` per variant in an isolated worktree and
   merge only the winner — parallel writers on one tree make conflicting implicit decisions.
@@ -142,7 +142,7 @@ hard — a fourth iteration means the brief or the plan is wrong, and grinding f
 
 Externalize state immediately; assume your context can be compacted at any time:
 
-- The plan lives in `.claude/research/discussion.md` as a `PLAN` entry when the work spans
+- The plan lives in `report/discussion.md` as a `PLAN` entry when the work spans
   multiple dispatches or fires a quality gate — written before the first dispatch and
   status-updated as stages land, one stage `in_progress` at a time. A single-dispatch task that
   changes no research state keeps its plan inline: no PLAN entry, no STATE entry — doc writes on

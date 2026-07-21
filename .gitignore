@@ -1,10 +1,4 @@
-# All data (raw, processed, splits)
-/data/
-
-# Generated research artifacts and private reading notes
-/experiments/
-/analysis/
-/papers/notes/
+# Research project workspace
 
 # Environment
 *.pyc
@@ -34,7 +28,19 @@ Thumbs.db
 # Logs
 *.log
 wandb/
-runs/
+/runs/
+
+# Local development-only research workspace. Keep the directory skeleton in the
+# distribution; `./orchestrate init <provider>` creates the ignored live documents.
+/plan/*
+!/plan/.gitkeep
+/report/*
+!/report/.gitkeep
+/data/*
+!/data/.gitkeep
+
+# Experiment source/configuration is distributable; run outputs are not.
+/experiments/runs/
 
 # personal orchestration launcher preferences
 /.orchestration/config.local.json
@@ -52,9 +58,8 @@ docs/paper*/
 .codex/cache/
 .claude/runs/
 
-# provider-owned live research state and role memory are personal work and never ship;
-# the distribution carries clean seeds in the providers' templates dirs (created by init)
-.claude/research/
+# Provider-owned role memory and legacy Codex research state are personal work and never ship;
+# the distribution carries clean seeds in provider template directories (created by init).
 .claude/agent-memory/
 .codex/research/
 .codex/memory/
@@ -86,4 +91,3 @@ papers/*.pdf
 # Local-only scratch work. Research tests under /tests are intentionally tracked.
 /scratch/
 /.local/
-

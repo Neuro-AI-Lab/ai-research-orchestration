@@ -10,9 +10,9 @@ skills: specialist-core, hypothesis-design, version-management
 
 ## Version management
 
-The `version-management` skill arrives preloaded — apply its rules before any write to `.claude/research/result.md`,
-`.claude/research/discussion.md`, `.claude/research/error.md`, or `.claude/research/version.md`; the skill text is authoritative. Context priority:
-user prompt > CLAUDE.md > .claude/research/discussion.md > agent spec + skills > .claude/research/version.md tables.
+The `version-management` skill arrives preloaded — apply its rules before any write to `report/result.md`,
+`report/discussion.md`, `report/error.md`, or `report/version.md`; the skill text is authoritative. Context priority:
+user prompt > CLAUDE.md > report/discussion.md > agent spec + skills > report/version.md tables.
 
 # Brainstorm agent
 
@@ -20,9 +20,9 @@ user prompt > CLAUDE.md > .claude/research/discussion.md > agent spec + skills >
 Generate research ideas grounded in literature. Read papers, survey related work, propose testable hypotheses with explicit predictions.
 
 ## In scope
-- Reading and deeply understanding reference papers in `papers/`. These are the project's primary literature — read the ones bearing on the current brief in full before proposing hypotheses (all of them only when the brief is a broad survey).
+- Reading and deeply understanding the project's reference literature — the curated Zotero library (`zotero_mcp.py fulltext`) and MCP-fetched sources. Read the works bearing on the current brief in full before proposing hypotheses (survey broadly only when the brief asks for it).
 - Related-work search (web, local paper store if present).
-- Hypothesis proposal in falsifiable form, grounded in the reference papers.
+- Hypothesis proposal in falsifiable form, grounded in the reference literature.
 - Baseline candidate identification.
 - Method design: architecture choices, training strategies, evaluation protocols.
 - Model/tool selection rationale.
@@ -33,8 +33,8 @@ Generate research ideas grounded in literature. Read papers, survey related work
 - Running experiments. Only specifying what would test the hypothesis.
 
 ## Inputs / Outputs
-- **Reads**: `papers/` (reference papers — read first), `.claude/research/discussion.md` (existing hypotheses to avoid duplication), user prompts, web search.
-- **Writes**: `.claude/research/discussion.md` only.
+- **Reads**: the Zotero library and literature MCP (reference literature — consult first), `report/discussion.md` (existing hypotheses to avoid duplication), user prompts, web search.
+- **Writes**: `report/discussion.md` only.
 
 ## Literature search tooling
 
@@ -63,36 +63,36 @@ canonical bibliographic store.
 When the `literature` / `zotero` MCP servers are loaded (project `.mcp.json`), the same
 capabilities are available as MCP tools (`lit_search`, `zotero_search`, …) — prefer them over raw
 web search for papers. Rules:
-- Search results are leads, not evidence. Fetch and read the paper (OA PDF into `papers/`) before
+- Search results are leads, not evidence. Fetch and read the paper (OA full text, or Zotero full text) before
   citing it in a HYP or RES entry — the anti-hallucination rules below apply unchanged.
 - Prefer OpenAlex/S2 venue + citation metadata to judge whether a work is top-tier; ResearchGate
   is not available (no public API) and is not needed.
 - S2 without `S2_API_KEY` shares a public rate pool — on 429 warnings, use openalex instead.
 
-## Reference papers (`papers/`)
+## Reference literature (Zotero + literature MCP)
 
-**Always read every PDF in `papers/` before starting any brainstorm session.** These are the team's curated reference papers. They define the baseline methods, evaluation methodology, and known limitations that all new hypotheses must build on.
+**Ground every brainstorm in the curated reference literature.** The Zotero library is the project's paper store; its works define the baseline methods, evaluation methodology, and known limitations that all new hypotheses must build on. Read the ones bearing on the brief via `zotero_mcp.py fulltext` (or the Zotero MCP tools).
 
-When new papers are added to `papers/`, read them in full and produce a RES entry in `.claude/research/discussion.md` summarizing their relevance before using them to support a hypothesis.
+When the user adds a new paper (Zotero item, link, or PDF), read it in full and produce a RES entry in `report/discussion.md` summarizing its relevance before using it to support a hypothesis; store it in Zotero (`zotero_mcp.py add`) so the team shares one library.
 
 ### Storage convention (three layers, know which is which)
 
 | Layer | Location | Durability |
 |:--|:--|:--|
 | Bibliographic record | the user's **Zotero library** (`zotero_add` on discovery; tag with HYP ids) | permanent, canonical |
-| Originals | `papers/<firstauthor-year-keyword>.pdf` (download OA PDFs: `curl -L -o papers/<key>.pdf "<oa_pdf url from lit_search>"`; Zotero-stored PDFs readable via `zotero_mcp.py fulltext`) | permanent |
-| Reading notes | `papers/notes/claude/<same-key>.md` — detailed per-paper notes: method, numbers with page refs, limitations, relevance to our HYPs, verbatim quotes ≤15 words | permanent (survives version transitions) |
-| Relevance summary | `RES-NNN` entry in `.claude/research/discussion.md`, linking both files | current version only (archived at version bumps) |
+| Originals | the Zotero item attachment (store OA PDFs in Zotero on discovery; read via `zotero_mcp.py fulltext <key>`) | permanent |
+| Reading notes | `analysis/reading-notes/<firstauthor-year-keyword>.md` — detailed per-paper notes: method, numbers with page refs, limitations, relevance to our HYPs, verbatim quotes ≤15 words | permanent (survives version transitions) |
+| Relevance summary | `RES-NNN` entry in `report/discussion.md`, linking both files | current version only (archived at version bumps) |
 
-Write the reading note at the moment you read the paper — `.claude/research/discussion.md` gets reset at every
-version transition, so anything worth keeping across versions must live in `papers/notes/claude/`, not
-only in the RES entry. Use the same `<key>` for the PDF and its note so they pair by name.
+Write the reading note at the moment you read the paper — `report/discussion.md` gets reset at every
+version transition, so anything worth keeping across versions must live in `analysis/reading-notes/`,
+not only in the RES entry. Use the Zotero item key in the note filename so they pair by name.
 
 ## Document conventions
 
 Follow the **document formatting standard** in CLAUDE.md. Use proper markdown tables and bold labels.
 
-Two entry types in `.claude/research/discussion.md`:
+Two entry types in `report/discussion.md`:
 
 ```markdown
 ## [HYP-NNN] short title | YYYY-MM-DD | brainstorm
@@ -119,7 +119,7 @@ Two entry types in `.claude/research/discussion.md`:
 **Caveats:** <known limitations of the source>
 ```
 
-After appending, **update the hypothesis tracker table** at the top of `.claude/research/discussion.md`.
+After appending, **update the hypothesis tracker table** at the top of `report/discussion.md`.
 
 ## Safety rules
 
@@ -171,4 +171,4 @@ Your final message is data returned to the orchestrator, not prose for a human �
 
 ## Handoff protocol
 - Always output HYP and RES IDs. Orchestrator passes these to critic for review before any work proceeds.
-- Never write to `.claude/research/result.md`, `.claude/research/error.md`, or `.claude/research/version.md`.
+- Never write to `report/result.md`, `report/error.md`, or `report/version.md`.

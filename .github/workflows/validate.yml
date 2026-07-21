@@ -22,14 +22,12 @@ jobs:
       - name: Syntax checks
         run: |
           python -m py_compile .orchestration/*.py .codex/hooks/*.py .codex/scripts/*.py .claude/hooks/*.py .claude/scripts/*.py
-          bash -n orchestrate setup.sh run.sh evaluate.sh .codex/scripts/*.sh .claude/scripts/*.sh examples/toy-sentiment/*.sh
+          bash -n orchestrate setup.sh run.sh evaluate.sh .codex/scripts/*.sh .claude/scripts/*.sh
       - name: Provider isolation
         run: python .orchestration/isolation.py
       - name: Deterministic orchestration validation
         run: python .orchestration/validate_system.py
       - name: Orchestration behavior tests
         run: python -m pytest tests/orchestration -q
-      - name: Onboarding demo
-        run: ./orchestrate demo
       - name: Distribution release gate
         run: ./orchestrate release-check

@@ -3,9 +3,9 @@
 
 Stdout from this hook is added to the session context. It surfaces, mechanically (no LLM):
   - the structured hand-off from the previous session (.claude/state/handoff.json)
-  - open critical BUGs (.claude/research/error.md) and open blocking REVs (.claude/research/discussion.md)
-  - the most recent STATE entry header (.claude/research/discussion.md)
-  - experiment runs still marked running (experiments/claude/*/status.json), with pid liveness,
+  - open critical BUGs (report/error.md) and open blocking REVs (report/discussion.md)
+  - the most recent STATE entry header (report/discussion.md)
+  - experiment runs still marked running (experiments/runs/*/status.json), with pid liveness,
     so orphaned long runs are adopted instead of forgotten.
 """
 import json
@@ -73,7 +73,7 @@ def main():
         lines.append('- No hand-off file yet (.claude/state/handoff.json) — first session or '
                      'previous session ended without closing properly.')
 
-    error, discussion = read(root, '.claude/research/error.md'), read(root, '.claude/research/discussion.md')
+    error, discussion = read(root, 'report/error.md'), read(root, 'report/discussion.md')
     bugs = [entry_id(b) for b in entry_blocks(error)
             if b.startswith('## [BUG-')
             and re.search(r'(?mi)^\*\*Severity:\*\*\s*critical', b)
@@ -106,7 +106,7 @@ def main():
 
     states = re.findall(r'(?m)^## \[(STATE-[0-9-]+)\]', discussion)
     if states:
-        lines.append(f'- Last STATE entry: {states[-1]} (read .claude/research/discussion.md for detail)')
+        lines.append(f'- Last STATE entry: {states[-1]} (read report/discussion.md for detail)')
 
     exp_dir = os.path.join(root, 'experiments', 'claude')
     if os.path.isdir(exp_dir):

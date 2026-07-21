@@ -6,7 +6,7 @@ import os
 import re
 import subprocess
 import sys
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -16,20 +16,43 @@ RESEARCH_DOCS = tuple(
     for backend in ("codex", "claude")
     for name in ("discussion.md", "result.md", "error.md", "version.md")
 )
-REQUIRED = (
-    "README.md", "README.ko.md", "SETUP.md", "SETUP.ko.md", "AGENTS.md", "CLAUDE.md",
-    "SECURITY.md", "SECURITY.ko.md", "CONTRIBUTING.md", "orchestrate", ".mcp.json",
-    ".codex/README.md", ".codex/ORCHESTRATION.md", ".codex/config.toml",
-    ".codex/hooks/audit_event.py", ".codex/scripts/orchestration_audit.py",
-    ".claude/README.md", ".orchestration/launcher.py", ".orchestration/isolation.py",
-    ".orchestration/validate_system.py",
+CLAUDE_PLAN_TEMPLATES = (
+    ".claude/templates/plan/PRD.md", ".claude/templates/plan/CHECKLIST.md",
 )
 PUBLIC_DOCS = (
-    "README.md", "README.ko.md", "SETUP.md", "SETUP.ko.md", "SECURITY.md",
-    "SECURITY.ko.md", "CONTRIBUTING.md", "docs/AI_RESEARCH_PROMPTS.md",
-    "docs/AI_RESEARCH_PROMPTS.ko.md", "docs/COMPATIBILITY.md",
-    "docs/COMPATIBILITY.ko.md", "docs/FEATURES.md", "docs/FEATURES.ko.md",
+    "README.md", "README.ko.md",
+    "docs/orchestration/CODEX.md", "docs/orchestration/CODEX.ko.md",
+    "docs/orchestration/CLAUDE.md", "docs/orchestration/CLAUDE.ko.md",
+    "docs/orchestration/MAINTAINERS.md", "docs/orchestration/MAINTAINERS.ko.md",
+)
+PROVIDER_DOCS = {
+    "codex": ("docs/orchestration/CODEX.md", "docs/orchestration/CODEX.ko.md"),
+    "claude": ("docs/orchestration/CLAUDE.md", "docs/orchestration/CLAUDE.ko.md"),
+}
+DOC_PAIRS = (
+    ("README.md", "README.ko.md"),
+    ("docs/orchestration/CODEX.md", "docs/orchestration/CODEX.ko.md"),
+    ("docs/orchestration/CLAUDE.md", "docs/orchestration/CLAUDE.ko.md"),
+    ("docs/orchestration/MAINTAINERS.md", "docs/orchestration/MAINTAINERS.ko.md"),
+)
+LEGACY_PUBLIC_DOCS = (
+    "SETUP.md", "SETUP.ko.md", "SECURITY.md", "SECURITY.ko.md", "CONTRIBUTING.md",
+    "docs/AI_RESEARCH_PROMPTS.md", "docs/AI_RESEARCH_PROMPTS.ko.md",
+    "docs/COMPATIBILITY.md", "docs/COMPATIBILITY.ko.md",
+    "docs/FEATURES.md", "docs/FEATURES.ko.md",
     "docs/RELEASING.md", "docs/RELEASING.ko.md",
+    ".codex/README.md", ".codex/docs/integrations/ZOTERO.md",
+    ".codex/docs/integrations/OVERLEAF.md", ".claude/README.md",
+    ".claude/ZOTERO.md", ".claude/OVERLEAF.md",
+)
+REQUIRED = PUBLIC_DOCS + (
+    "AGENTS.md", "CLAUDE.md", "LICENSE", "requirements.txt", "requirements-dev.txt",
+    "orchestrate", "setup.sh", "run.sh", "evaluate.sh", ".mcp.json",
+    ".codex/ORCHESTRATION.md", ".codex/config.toml",
+    ".codex/hooks/audit_event.py", ".codex/scripts/orchestration_audit.py",
+    ".claude/settings.json", *CLAUDE_PLAN_TEMPLATES,
+    ".orchestration/launcher.py", ".orchestration/isolation.py",
+    ".orchestration/validate_system.py",
 )
 INTERNAL_PREFIXES = (
     ".orchestration/evals/", ".orchestration/reports/", "evaluation/orchestration/",
@@ -37,8 +60,6 @@ INTERNAL_PREFIXES = (
 )
 INTERNAL_FILES = {
     ".claude/prompts/orchestration-evals.md", "docs/orchestration-benchmark.md",
-    "examples/toy-sentiment/EXAMPLE_ENTRIES.md",
-    "examples/toy-sentiment/sample_output.txt",
 }
 REAL_ENTRY = re.compile(
     r"(?m)^## \[(?:HYP|RES|DATASET|REV|QA|ADR|PLAN|STATE|REPORT|EXP|BUG|VAL|VER|CLEAN)-\d"
@@ -48,6 +69,7 @@ SECRET_PATTERNS = (
     re.compile(r"sk-[A-Za-z0-9_-]{20,}"),
     re.compile(r"olp_[A-Za-z0-9_-]{20,}"),
 )
+MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 
 
 def run(*args):
@@ -84,6 +106,7 @@ def main():
         else:
             fail(path + " missing")
 
+    public_content = {}
     for path in PUBLIC_DOCS:
         try:
             with open(os.path.join(ROOT, path), encoding="utf-8") as handle:
@@ -91,14 +114,68 @@ def main():
         except OSError as exc:
             fail("{} unreadable: {}".format(path, exc))
             continue
-        if "## CODEX" not in content or "## CLAUDE" not in content:
-            fail(path + " must keep separate CODEX and CLAUDE sections")
-        elif any(token in content for token in (
+        public_content[path] = content
+        if any(token in content for token in (
                 "evaluation/orchestration", ".orchestration/evals",
                 "orchestration-benchmark")):
             fail(path + " contains maintainer-only validation history")
         else:
-            passed(path + " separates CODEX and CLAUDE guidance")
+            passed(path + " contains no maintainer-only validation history")
+
+    for backend, paths in PROVIDER_DOCS.items():
+        forbidden = re.compile(r"\bClaude\b", re.IGNORECASE) if backend == "codex" else re.compile(
+            r"\bCodex\b", re.IGNORECASE
+        )
+        for path in paths:
+            content = public_content.get(path, "")
+            if forbidden.search(content):
+                fail(path + " crosses the provider documentation boundary")
+            elif content:
+                passed(path + " is provider-isolated")
+
+    for readme in ("README.md", "README.ko.md"):
+        content = public_content.get(readme, "")
+        missing = [path for paths in PROVIDER_DOCS.values() for path in paths
+                   if (path.endswith(".ko.md") == readme.endswith(".ko.md")) and path not in content]
+        if missing:
+            fail(readme + " does not link every provider guide for its language")
+        elif content:
+            passed(readme + " routes users to both provider guides")
+
+    for english, korean in DOC_PAIRS:
+        english_sections = len(re.findall(r"(?m)^## ", public_content.get(english, "")))
+        korean_sections = len(re.findall(r"(?m)^## ", public_content.get(korean, "")))
+        if not english_sections or english_sections != korean_sections:
+            fail("{} and {} have mismatched section structure".format(english, korean))
+        else:
+            passed("{} and {} have paired section structure".format(english, korean))
+
+    broken_links = []
+    for path, content in public_content.items():
+        for match in MARKDOWN_LINK.finditer(content):
+            target = match.group(1).strip()
+            if not target or target.startswith("#"):
+                continue
+            parsed = urlsplit(target)
+            if parsed.scheme or parsed.netloc:
+                continue
+            local = unquote(parsed.path)
+            if not local:
+                continue
+            base = ROOT if local.startswith("/") else os.path.join(ROOT, os.path.dirname(path))
+            resolved = os.path.normpath(os.path.join(base, local.lstrip("/")))
+            if not os.path.exists(resolved):
+                broken_links.append("{} -> {}".format(path, target))
+    if broken_links:
+        fail("broken local documentation links: " + ", ".join(broken_links))
+    else:
+        passed("public documentation local links resolve")
+
+    for path in LEGACY_PUBLIC_DOCS:
+        if os.path.exists(os.path.join(ROOT, path)):
+            fail(path + " is a redundant legacy distribution document")
+        else:
+            passed(path + " absent (guidance is consolidated)")
 
     for path in ("orchestrate", "setup.sh", "run.sh", "evaluate.sh"):
         full = os.path.join(ROOT, path)
@@ -137,7 +214,7 @@ def main():
         else:
             passed(path + " absent (provider state is isolated)")
 
-    for path in RESEARCH_DOCS:
+    for path in RESEARCH_DOCS + CLAUDE_PLAN_TEMPLATES:
         try:
             with open(os.path.join(ROOT, path), encoding="utf-8") as handle:
                 content = handle.read()
@@ -181,10 +258,9 @@ def main():
         ".codex/settings.local.json", ".codex/state/handoff.json",
         ".codex/research/probe.md", ".codex/memory/probe/MEMORY.md",
         ".codex/runs/probe.json", ".claude/settings.local.json",
-        ".claude/state/handoff.json", ".claude/research/probe.md",
+        ".claude/state/handoff.json",
         ".claude/agent-memory/probe/MEMORY.md", ".claude/runs/probe.json",
-        "data/probe.json", "experiments/codex/probe.json", "analysis/codex/probe.json",
-        "papers/notes/codex/probe.md", "tests/repro/probe.py",
+        "tests/repro/probe.py",
         "docs/validation/probe.md",
     )
     not_ignored = [
@@ -198,7 +274,7 @@ def main():
     tracked_live = sorted(
         name for name in tracked
         if name.startswith((
-            ".claude/research/", ".claude/agent-memory/",
+            ".claude/agent-memory/",
             ".claude/runs/", ".codex/research/", ".codex/memory/", ".codex/runs/",
         ))
     )
@@ -206,6 +282,23 @@ def main():
         fail("live provider state/memory is tracked: " + ", ".join(tracked_live[:6]))
     else:
         passed("live provider state and memory are untracked")
+
+    # plan/ and report/ ship as clean workspace seeds; they must never carry real entries.
+    dirty_workspace = []
+    for name in sorted(candidate_files()):
+        if not name.startswith(("plan/", "report/")) or not name.endswith(".md"):
+            continue
+        try:
+            with open(os.path.join(ROOT, name), encoding="utf-8") as handle:
+                if REAL_ENTRY.search(handle.read()):
+                    dirty_workspace.append(name)
+        except OSError:
+            dirty_workspace.append(name)
+    if dirty_workspace:
+        fail("shipped workspace seeds contain real research entries: "
+             + ", ".join(dirty_workspace[:6]))
+    else:
+        passed("plan/ and report/ ship as clean workspace seeds")
 
     candidates = set(candidate_files())
     internal = sorted(

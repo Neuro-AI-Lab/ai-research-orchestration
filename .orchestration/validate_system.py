@@ -52,16 +52,46 @@ claude_result_gate = load_module(
 
 class DistributionValidation(unittest.TestCase):
     def test_required_files_and_fleets(self):
-        for path in ("AGENTS.md", ".codex/ORCHESTRATION.md", "SECURITY.md", "SECURITY.ko.md",
+        for path in ("README.md", "README.ko.md", "AGENTS.md", "CLAUDE.md",
+                     "docs/orchestration/CODEX.md", "docs/orchestration/CODEX.ko.md",
+                     "docs/orchestration/CLAUDE.md", "docs/orchestration/CLAUDE.ko.md",
+                     "docs/orchestration/MAINTAINERS.md",
+                     "docs/orchestration/MAINTAINERS.ko.md", ".codex/ORCHESTRATION.md",
+                     ".claude/templates/plan/PRD.md",
+                     ".claude/templates/plan/CHECKLIST.md",
                      "requirements.txt", "requirements-dev.txt", ".codex/config.toml",
                      ".codex/hooks/audit_event.py", ".codex/scripts/orchestration_audit.py",
                      ".orchestration/release_check.py", ".orchestration/isolation.py",
                      ".orchestration/validate_system.py", "orchestrate"):
             self.assertTrue(os.path.isfile(os.path.join(ROOT, path)), path)
+        for path in ("SETUP.md", "SETUP.ko.md", "SECURITY.md", "SECURITY.ko.md",
+                     "CONTRIBUTING.md", ".codex/README.md", ".claude/README.md"):
+            self.assertFalse(os.path.exists(os.path.join(ROOT, path)), path)
         for preset in ("quality", "balanced", "fast"):
             for role in CODEX_ROLES:
                 self.assertTrue(os.path.isfile(launcher.agent_path(preset, role)))
                 self.assertTrue(os.path.isfile(os.path.join(ROOT, ".codex", "prompts", "roles", role + ".md")))
+
+    def test_agent_git_mutations_require_explicit_user_authority(self):
+        policies = {
+            "AGENTS.md": ("explicit user", "stage", "branch", "commit", "pull", "push", "pull request", "merge"),
+            ".codex/ORCHESTRATION.md": (
+                "explicit user", "stage", "branch", "commit", "pull", "push", "pull request", "merge",
+            ),
+            ".agents/skills/codex-specialist-core/SKILL.md": (
+                "user's explicit request", "stage", "branch", "commit", "pull", "push", "pull request", "merge",
+            ),
+            "CLAUDE.md": ("explicit user", "stage", "branch", "commit", "pull", "push", "pull request", "merge"),
+            ".claude/skills/specialist-core/SKILL.md": (
+                "user's explicit request", "stage", "branch", "commit", "pull", "push", "pull request", "merge",
+            ),
+        }
+        for path, required in policies.items():
+            with self.subTest(path=path):
+                with open(os.path.join(ROOT, path), encoding="utf-8") as handle:
+                    content = handle.read().lower()
+                for token in required:
+                    self.assertIn(token, content)
 
     def test_codex_skill_set_is_complete_and_distribution_ready(self):
         skill_root = os.path.join(ROOT, ".agents", "skills")
@@ -242,6 +272,45 @@ class DistributionValidation(unittest.TestCase):
                 )))
                 self.assertFalse(os.path.exists(os.path.join(root, ".claude")))
                 self.assertFalse(os.path.exists(os.path.join(root, "experiments", "claude")))
+            finally:
+                launcher.ROOT = original_root
+
+    def test_claude_initialization_creates_its_workspace_only(self):
+        original_root = launcher.ROOT
+        with tempfile.TemporaryDirectory() as root:
+            try:
+                launcher.ROOT = root
+                sources = [
+                    ".claude/settings.local.json.example",
+                    ".claude/state/handoff.json.example",
+                ]
+                sources.extend(
+                    ".claude/templates/research/{}".format(name)
+                    for name in ("discussion.md", "result.md", "error.md", "version.md")
+                )
+                sources.extend(
+                    ".claude/templates/memory/{}/MEMORY.md".format(role)
+                    for role in ("orchestrator", "brainstorm", "critic")
+                )
+                sources.extend((
+                    ".claude/templates/plan/PRD.md",
+                    ".claude/templates/plan/CHECKLIST.md",
+                ))
+                for relative in sources:
+                    path = os.path.join(root, relative)
+                    os.makedirs(os.path.dirname(path), exist_ok=True)
+                    with open(path, "w", encoding="utf-8") as handle:
+                        handle.write("{}\n" if path.endswith(".json.example") else "# clean seed\n")
+                with contextlib.redirect_stdout(io.StringIO()):
+                    launcher.initialize_project("claude")
+                for relative in (
+                    "plan/PRD.md", "plan/CHECKLIST.md", "report/discussion.md",
+                    "report/result.md", "report/error.md", "report/version.md",
+                    "model", "experiments/runs", "analysis", "functionals", "utils",
+                ):
+                    self.assertTrue(os.path.exists(os.path.join(root, relative)), relative)
+                self.assertFalse(os.path.exists(os.path.join(root, ".codex")))
+                self.assertFalse(os.path.exists(os.path.join(root, "experiments", "codex")))
             finally:
                 launcher.ROOT = original_root
 
@@ -445,7 +514,7 @@ class DistributionValidation(unittest.TestCase):
 **Status:** complete
 """
         with tempfile.TemporaryDirectory() as root:
-            state = os.path.join(root, ".claude", "research")
+            state = os.path.join(root, "report")
             os.makedirs(state)
             with open(os.path.join(state, "discussion.md"), "w", encoding="utf-8") as handle:
                 handle.write(discussion)
@@ -489,7 +558,7 @@ class DistributionValidation(unittest.TestCase):
     def test_missing_handoff_is_optional_on_first_close(self):
         hook = os.path.join(ROOT, ".claude", "hooks", "session_close_gate.py")
         with tempfile.TemporaryDirectory() as root:
-            state = os.path.join(root, ".claude", "research")
+            state = os.path.join(root, "report")
             os.makedirs(state)
             for name in ("discussion.md", "error.md", "result.md", "version.md"):
                 with open(os.path.join(state, name), "w", encoding="utf-8") as handle:

@@ -15,6 +15,14 @@ conductor, or orchestrator subagent. Specialists never spawn agents. Keep no mor
 specialists active concurrently, checkpoint before eight total dispatches, and stop for user direction
 before expanding the program further.
 
+Git history and remote actions require explicit user authority. Unless the user specifically requests
+the corresponding action, do not stage or unstage files; create, rename, delete, or switch branches;
+create or amend commits; fetch, pull, push, or force-push; open, edit, close, or approve pull requests;
+merge, rebase, cherry-pick, stash, reset, restore, tag, or publish releases. Do not run any other Git
+command that mutates the index, working tree, refs, history, or a remote. A request to implement, test,
+review, document, prepare, or make the project deployable authorizes ordinary working-tree edits only.
+Authorization for one Git action never implies another.
+
 An agent exists only after the native spawn call returns a concrete identifier. Record that identifier
 in the run ledger. Never claim delegation, a RESULT, or filesystem work from an agent that did not
 actually start. Dependent stages receive a HANDOFF built only from the prior verified RESULT.

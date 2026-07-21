@@ -33,8 +33,11 @@ def test_provider_accepts_its_own_positive_attestations(backend):
 @pytest.mark.parametrize("active,other", (("codex", "claude"), ("claude", "codex")))
 def test_provider_ignores_the_other_provider_state(active, other):
     with tempfile.TemporaryDirectory() as root:
-        active_dir = os.path.join(root, "." + active, "research")
-        other_dir = os.path.join(root, "." + other, "research")
+        def state_dir(name):
+            return (os.path.join(root, "report") if name == "claude"
+                    else os.path.join(root, "." + name, "research"))
+        active_dir = state_dir(active)
+        other_dir = state_dir(other)
         os.makedirs(active_dir)
         os.makedirs(other_dir)
         for base, discussion in ((active_dir, "# empty\n"), (other_dir, PASSED)):

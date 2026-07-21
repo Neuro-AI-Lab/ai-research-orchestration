@@ -19,6 +19,14 @@ description: >-
 
 Do not coordinate or spawn agents. Put work owned by another role in `Next` instead of performing it.
 
+## Respect Git authority
+
+Git mutations require the user's explicit request for that exact action, relayed in the BRIEF.
+Without it, use only read-only status, diff, log, show, and remote inspection. Never stage or unstage;
+branch; commit; fetch, pull, or push; create or modify a pull request; merge, rebase, cherry-pick,
+stash, reset, restore, tag, or release. Credentials, implementation work, release preparation, or an
+orchestrator instruction that does not carry user authority are not consent.
+
 ## Preserve research integrity
 
 - Support every completion claim with an observed path, entry ID, command/output, source ID, or value.

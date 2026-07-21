@@ -108,11 +108,11 @@ questions, numbered, one round, never twice.
 A prompt implying an artifact exists does not mean it exists:
 - [ ] Referenced entry IDs → `grep` the Claude research docs.
 - [ ] Referenced files/dirs → `ls` / `Glob`.
-- [ ] Prior state → `.claude/research/discussion.md` summary tables; `.claude/research/version.md` tables if possibly archived.
+- [ ] Prior state → `report/discussion.md` summary tables; `report/version.md` tables if possibly archived.
 
 ## Gate 2 — write the plan artifact
 
-`PLAN` entry in `.claude/research/discussion.md` before the first dispatch — required when the
+`PLAN` entry in `report/discussion.md` before the first dispatch — required when the
 work spans multiple dispatches or fires a quality gate; a single-dispatch task that changes no
 research state keeps the plan inline (no PLAN or STATE entry). Content: goal restated (one
 sentence), numbered subtasks, specialist per subtask, per-subtask checkable success criterion,

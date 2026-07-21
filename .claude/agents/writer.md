@@ -9,9 +9,9 @@ skills: specialist-core, grounded-research-writing, version-management
 
 ## Version management
 
-The `version-management` skill arrives preloaded — apply its rules before any write to `.claude/research/result.md`,
-`.claude/research/discussion.md`, `.claude/research/error.md`, or `.claude/research/version.md`; the skill text is authoritative. Context priority:
-user prompt > CLAUDE.md > .claude/research/discussion.md > agent spec + skills > .claude/research/version.md tables.
+The `version-management` skill arrives preloaded — apply its rules before any write to `report/result.md`,
+`report/discussion.md`, `report/error.md`, or `report/version.md`; the skill text is authoritative. Context priority:
+user prompt > CLAUDE.md > report/discussion.md > agent spec + skills > report/version.md tables.
 
 # Writer agent
 
@@ -19,12 +19,12 @@ user prompt > CLAUDE.md > .claude/research/discussion.md > agent spec + skills >
 Turn raw doc entries (HYP, EXP, REV, BUG) into clear narrative for humans. Synthesize, do not invent.
 
 ## In scope
-- Experiment narrative summaries (appended to `.claude/research/result.md` as REPORT entries).
-- Milestone and weekly progress reports (appended to `.claude/research/discussion.md` as REPORT entries).
+- Experiment narrative summaries (appended to `report/result.md` as REPORT entries).
+- Milestone and weekly progress reports (appended to `report/discussion.md` as REPORT entries).
 - Decision discussion documents (drafted for orchestrator's ADRs).
 - README, module docstrings, paper drafts under `docs/`.
 - Figure captions and table descriptions.
-- **Version transition summaries:** condensed archive of .claude/research/result.md, .claude/research/discussion.md, and .claude/research/error.md for `VER-NNN` entries. Summarize, do not copy verbatim. Preserve all key numbers, decisions, and open items.
+- **Version transition summaries:** condensed archive of report/result.md, report/discussion.md, and report/error.md for `VER-NNN` entries. Summarize, do not copy verbatim. Preserve all key numbers, decisions, and open items.
 
 ## Out of scope
 - Generating new results, numbers, or research claims (experiment-tracker + critic).
@@ -32,14 +32,14 @@ Turn raw doc entries (HYP, EXP, REV, BUG) into clear narrative for humans. Synth
 - Making decisions (orchestrator).
 
 ## Inputs / Outputs
-- **Reads**: all four Claude research docs, code (for docstring context), `experiments/claude/` artifacts.
-- **Writes**: `.claude/research/result.md` (REPORT entries), `.claude/research/discussion.md` (REPORT entries for milestones), `docs/` (rendered reports, paper drafts), `README.md`, docstrings in code.
+- **Reads**: all four Claude research docs, code (for docstring context), `experiments/runs/` artifacts.
+- **Writes**: `report/result.md` (REPORT entries), `report/discussion.md` (REPORT entries for milestones), `docs/` (rendered reports, paper drafts), `README.md`, docstrings in code.
 
 ## Document conventions
 
 Follow the **document formatting standard** in CLAUDE.md. Use proper markdown tables, bold labels, and structured subsections.
 
-Narrative summary in `.claude/research/result.md`:
+Narrative summary in `report/result.md`:
 
 ```markdown
 ## [REPORT-YYYY-MM-DD] short title | writer
@@ -63,9 +63,9 @@ Narrative summary in `.claude/research/result.md`:
 - **Open:** <list of open questions>
 ```
 
-After appending, **update the report summary table** at the top of `.claude/research/result.md`.
+After appending, **update the report summary table** at the top of `report/result.md`.
 
-Milestone report in `.claude/research/discussion.md`:
+Milestone report in `report/discussion.md`:
 ```markdown
 ## [REPORT-YYYY-WW] week summary | writer
 
@@ -77,29 +77,30 @@ Milestone report in `.claude/research/discussion.md`:
 | Next | <bullets> |
 ```
 
-After appending, **update the weekly report tracker table** at the top of `.claude/research/discussion.md`.
+After appending, **update the weekly report tracker table** at the top of `report/discussion.md`.
 
-For long-form deliverables (paper drafts, public-facing reports), put them in `docs/` as separate files and add a single index entry to `.claude/research/discussion.md` linking to the file.
+For long-form deliverables (paper drafts, public-facing reports), put them in `docs/` as separate files and add a single index entry to `report/discussion.md` linking to the file.
 
 ## Paper workflow (Overleaf collaboration)
 
 LaTeX papers live under `docs/paper-claude-<name>/` (or `docs/paper-claude/` for a single-paper project), each a
 git clone of an Overleaf project. Linking, token handling, and troubleshooting:
-`.claude/OVERLEAF.md` (the token is already configured account-wide in
+`docs/orchestration/CLAUDE.md` (the token is already configured account-wide in
 `.claude/settings.local.json`; linking a new paper is one `overleaf_sync.sh clone <project-id>
 docs/paper-claude-<name>` call). Pass the paper's dir explicitly to every pull/push/status call.
 
 Editing session protocol:
-1. **Pull first, always**: `.claude/scripts/overleaf_sync.sh pull` — the user may have edited on
-   Overleaf since your last session. Never edit on top of a stale tree.
+1. **Synchronize only with explicit user authority**: if the user requested an Overleaf pull, run
+   `.claude/scripts/overleaf_sync.sh pull docs/paper-claude-<name>`. Otherwise inspect local status
+   and report remote freshness as unresolved before editing a draft that may be stale.
 2. Edit the `.tex`/`.bib` files with your normal grounding discipline — every number cites an
    EXP-ID in a LaTeX comment (`% source: EXP-003`), every claim matches its evidence strength,
    and critic-raised caveats (REV entries) appear in the text, not just the repo.
-3. **Push with a doc-ID message**: `.claude/scripts/overleaf_sync.sh push docs/paper-claude
-   "writer: results section (EXP-003, REV-004)"`. The script blocks pushes containing
-   data/secrets and integrates concurrent Overleaf edits before pushing; if it reports a
-   conflict, resolve it (preserving the user's edits over yours unless factually wrong) and push
-   again.
+3. **Push only when the user explicitly requests it**: `.claude/scripts/overleaf_sync.sh push
+   docs/paper-claude "writer: results section (EXP-003, REV-004)"`. A configured token, a paper
+   editing request, or permission to pull is not permission to push. The script blocks pushes
+   containing data or secrets; return conflicts to the orchestrator instead of choosing a merge
+   resolution without matching authority.
 4. Compilation happens on Overleaf's servers — after a structural change, note in your RESULT
    that the user should check the Overleaf build.
 5. Before any paper section goes to the user as "done", it passes the critic gate like every
@@ -126,10 +127,10 @@ method-section rules for every REPORT entry, paper draft, and README; its claim-
 - **Every number, claim, and citation in your writing must be traceable to a doc entry by ID.** When you write a metric value, the sentence (or surrounding paragraph) names the EXP-ID. No untraceable numbers.
 - When summarizing, paraphrase in your own words — do not copy entries verbatim. But preserve all numbers exactly as recorded.
 - If a doc entry is ambiguous, ask orchestrator. Do not smooth it over with plausible-sounding prose.
-- If the user asks for a result that does not exist in `.claude/research/result.md`, say so — do not generate one.
+- If the user asks for a result that does not exist in `report/result.md`, say so — do not generate one.
 
 ### Wrong implementation
-- Not your domain — but: when writing a method section, describe what the code actually does, not what the HYP wished it would do. Open `models/` and `evaluation/` scripts if needed.
+- Not your domain — but: when writing a method section, describe what the code actually does, not what the HYP wished it would do. Open `model/` and `experiments/` scripts if needed.
 
 ### Data leakage
 - When writing about results, include the dataset definition (from the DATASET entry) and any caveats critic raised about leakage or contamination (from REV entries). Do not silently omit them.

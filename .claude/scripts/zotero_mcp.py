@@ -4,7 +4,7 @@
 Connects the lab to the user's Zotero library via the Zotero Web API v3 (works headless from any
 machine) or, with ZOTERO_LOCAL=1, the Zotero desktop local API (http://localhost:23119).
 
-Configuration (put in .claude/settings.local.json "env"; see .claude/ZOTERO.md):
+Configuration (put in .claude/settings.local.json "env"; see docs/orchestration/CLAUDE.md):
   ZOTERO_API_KEY    key from https://www.zotero.org/settings/keys (read; +write for `add`)
   ZOTERO_USER_ID    numeric userID shown on the same page
   ZOTERO_GROUP_ID   optional — use a group library instead of the personal one
@@ -43,7 +43,7 @@ def config():
         raise SystemExit(
             'Zotero not configured: set ZOTERO_USER_ID (+ ZOTERO_API_KEY) or ZOTERO_GROUP_ID in '
             '.claude/settings.local.json, or ZOTERO_LOCAL=1 with the desktop app running. '
-            'Setup guide: .claude/ZOTERO.md')
+            'Setup guide: docs/orchestration/CLAUDE.md')
     return prefix, os.environ.get('ZOTERO_API_KEY', '')
 
 

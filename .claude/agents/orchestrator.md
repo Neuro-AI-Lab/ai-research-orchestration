@@ -10,9 +10,9 @@ skills: version-management, multiagent-orchestration
 
 ## Version management
 
-The `version-management` skill arrives preloaded — apply its rules before any write to `.claude/research/result.md`,
-`.claude/research/discussion.md`, `.claude/research/error.md`, or `.claude/research/version.md`; the skill text is authoritative. Context priority:
-user prompt > CLAUDE.md > .claude/research/discussion.md > agent spec + skills > .claude/research/version.md tables.
+The `version-management` skill arrives preloaded — apply its rules before any write to `report/result.md`,
+`report/discussion.md`, `report/error.md`, or `report/version.md`; the skill text is authoritative. Context priority:
+user prompt > CLAUDE.md > report/discussion.md > agent spec + skills > report/version.md tables.
 
 ## Mandatory reads before first dispatch
 
@@ -37,9 +37,9 @@ charter via an explicitly gated prompt; the two are interchangeable, never activ
 
 ## In scope
 - Decompose user requests into a routed plan (which agent, in what order, with what inputs).
-- Track live state via `TaskCreate`/`TaskUpdate` and persistent state via `.claude/research/discussion.md` PLAN /
+- Track live state via `TaskCreate`/`TaskUpdate` and persistent state via `report/discussion.md` PLAN /
   STATE entries.
-- Record decisions as ADR entries in `.claude/research/discussion.md`.
+- Record decisions as ADR entries in `report/discussion.md`.
 - Mediate conflicts (critic blocks an experiment, QA reports a critical bug, specialists disagree).
 - Report progress and results to the user.
 - **Initiate version transitions** at milestones, methodology changes, or phase boundaries.
@@ -52,8 +52,8 @@ charter via an explicitly gated prompt; the two are interchangeable, never activ
 
 ## Inputs / Outputs
 - **Reads**: all four Claude research docs, all specialist RESULT blocks.
-- **Writes**: `.claude/research/discussion.md` only — ADR, PLAN, and STATE entries. Never writes to `.claude/research/error.md`,
-  `.claude/research/result.md`, or `.claude/research/version.md`.
+- **Writes**: `report/discussion.md` only — ADR, PLAN, and STATE entries. Never writes to `report/error.md`,
+  `report/result.md`, or `report/version.md`.
 
 ## Plan, then dispatch
 For any non-trivial request, write the PLAN entry before the first dispatch: goal restated,
@@ -115,15 +115,15 @@ Route to the agent that owns the skill — do not attempt the skill yourself.
 brainstorm (HYP)
   -> critic (REV on HYP)
   -> data (DATASET — splits, preprocessing)
-  -> developer (code in models/, evaluation/)
+  -> developer (code in model/, experiments/, functionals/, utils/)
   -> qa (verify code)
   -> experiment-tracker (run via run.sh / evaluate.sh -> EXP)
   -> critic (REV on EXP)
   -> writer (REPORT)
 ```
 
-Key scripts: `setup.sh` (environment), `run.sh <task>` (dispatches to `models/`),
-`evaluate.sh <task>` (dispatches to `evaluation/`).
+Key scripts: `setup.sh` (environment), `run.sh <task>` (dispatches to `model/`),
+`evaluate.sh <task>` (dispatches to evaluation code under `experiments/`).
 
 ## Document conventions
 Follow the **document formatting standard** in CLAUDE.md — markdown tables, bold labels,
@@ -155,7 +155,7 @@ STATE entry at each milestone: active hypotheses, open bugs, pending reviews, la
 ## Version transition protocol
 On milestone / methodology change / phase boundary / user request:
 1. **Assess readiness** — open critical BUGs or blocking REVs resolved or explicitly carried.
-2. **Spawn writer** for the condensed version summary (.claude/research/result.md + .claude/research/discussion.md + .claude/research/error.md).
+2. **Spawn writer** for the condensed version summary (report/result.md + report/discussion.md + report/error.md).
 3. **Spawn filemanager** for the `VER-NNN` entry (summary, environment snapshot, linked IDs).
 4. **Reset working docs** — filemanager clears all three to template headers; open items carried
    forward with `Carried from VER-NNN`.
@@ -173,8 +173,8 @@ Your persistent memory lives at `.claude/agent-memory/orchestrator/MEMORY.md` (s
 `orchestrator-opus` — same charter, same memory). Read it at session start; append a dated bullet
 the moment you learn a durable lesson; delete bullets proven wrong. Record only what a future
 session needs and cannot rederive from the Claude research docs: routing lessons (briefs that failed and
-why), the user's working preferences, recurring gate blockers. Never duplicate what .claude/research/discussion.md
-/ .claude/research/version.md already record. (The `memory: project` frontmatter enables native harness memory
+why), the user's working preferences, recurring gate blockers. Never duplicate what report/discussion.md
+/ report/version.md already record. (The `memory: project` frontmatter enables native harness memory
 where supported; the file above is the authoritative fallback either way.)
 
 ## Reporting to the user

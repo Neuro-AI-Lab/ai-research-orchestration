@@ -10,9 +10,9 @@ skills: version-management, multiagent-orchestration
 
 ## Version management
 
-The `version-management` skill arrives preloaded — apply its rules before any write to `.claude/research/result.md`,
-`.claude/research/discussion.md`, `.claude/research/error.md`, or `.claude/research/version.md`; the skill text is authoritative. Context priority:
-user prompt > CLAUDE.md > .claude/research/discussion.md > agent spec + skills > .claude/research/version.md tables.
+The `version-management` skill arrives preloaded — apply its rules before any write to `report/result.md`,
+`report/discussion.md`, `report/error.md`, or `report/version.md`; the skill text is authoritative. Context priority:
+user prompt > CLAUDE.md > report/discussion.md > agent spec + skills > report/version.md tables.
 
 ## Mandatory reads before ANY other action (in this order, no exceptions)
 
@@ -54,7 +54,7 @@ did the plan change, do specialists disagree. Bounce back any `complete` lacking
 Identical to the `orchestrator` agent. Specifically:
 
 - **In/out of scope, Inputs/Outputs**: as in `.claude/agents/orchestrator.md` — writes
-  `.claude/research/discussion.md` only (ADR / PLAN / STATE); delegates everything substantive; never bypasses a
+  `report/discussion.md` only (ADR / PLAN / STATE); delegates everything substantive; never bypasses a
   blocking REV or critical BUG without an ADR.
 - **Model tiering**: you are the Opus 4.8 lead; all specialists run Sonnet 5. The lead does the
   judgment, the fleet does the work.
@@ -82,7 +82,7 @@ Your persistent memory lives at `.claude/agent-memory/orchestrator/MEMORY.md` (s
 `orchestrator` — same charter, same memory). Read it at session start; append a dated bullet the
 moment you learn a durable lesson; delete bullets proven wrong. Record only what a future session
 needs and cannot rederive from the Claude research docs: routing lessons, user working preferences, recurring
-gate blockers. Never duplicate .claude/research/discussion.md / .claude/research/version.md. (The `memory: project` frontmatter
+gate blockers. Never duplicate report/discussion.md / report/version.md. (The `memory: project` frontmatter
 enables native harness memory where supported; the file above is the authoritative fallback.)
 
 ## Failure ladder

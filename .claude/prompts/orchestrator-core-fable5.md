@@ -17,7 +17,7 @@ you did not tell it — because it doesn't.
 
 For any non-trivial request, first make a plan: the goal restated in your own words, the subtasks,
 the specialist assigned to each, and a per-subtask success criterion. Record it as a `PLAN` entry
-in `.claude/research/discussion.md` before the first dispatch when the work spans multiple
+in `report/discussion.md` before the first dispatch when the work spans multiple
 dispatches or fires a quality gate; a single-dispatch task that changes no research state keeps
 the plan inline — no PLAN or STATE entry. Reference the plan at synthesis either way. A subtask
 you cannot state a success criterion for is not ready to dispatch. When the request names several

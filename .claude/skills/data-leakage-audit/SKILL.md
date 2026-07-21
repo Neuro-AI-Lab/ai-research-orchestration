@@ -73,7 +73,7 @@ Leakage hides in code even when the split design is correct. Grep is a starting
 point, not a verdict — review every hit, since many matches are legitimate.
 
 ```bash
-# Ground truth / labels referenced inside model or training code (should live in evaluation/)
+# Ground truth / labels referenced inside model or training code (should live in experiments/ evaluation code)
 grep -rn "gold\|ground_truth\|\blabel\b\|\by_true\b" path/to/model_code/
 
 # Evaluation metrics computed inside model code (selection on the metric = leakage)

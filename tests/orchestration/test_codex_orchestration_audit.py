@@ -239,7 +239,7 @@ def test_native_hook_payload_binds_identity_and_result(tmp_path):
         "stop_hook_active": False,
     })
     assert stopped.returncode == 0, stopped.stderr
-    research = tmp_path / ".codex" / "research"
+    research = tmp_path / "report"
     research.mkdir(parents=True)
     (research / "discussion.md").write_text(
         """## [DATASET-001] fixture
@@ -253,7 +253,7 @@ def test_native_hook_payload_binds_identity_and_result(tmp_path):
 """,
         encoding="utf-8",
     )
-    (research / "error.md").write_text("# no open errors\n", encoding="utf-8")
+    (research / "issue.md").write_text("# no open issues\n", encoding="utf-8")
     gate = subprocess.run(
         [sys.executable, str(ROOT / ".codex" / "hooks" / "experiment_gate.py")],
         input=json.dumps({
@@ -311,7 +311,7 @@ def test_audit_cli_text_json_and_list(tmp_path):
     assert run_id in listing.stdout
 
 
-def test_stale_handoff_stop_is_not_marked_complete_until_retry(tmp_path):
+def test_stale_handoff_stop_is_nonblocking_and_audited(tmp_path):
     scripts = tmp_path / ".codex" / "scripts"
     scripts.mkdir(parents=True)
     os.symlink(ROOT / ".codex" / "scripts" / "orchestration_audit.py",
@@ -322,7 +322,7 @@ def test_stale_handoff_stop_is_not_marked_complete_until_retry(tmp_path):
         "session_started", {"session_id": "root-stop"}, run_id=run_id, root=tmp_path
     )
     state = tmp_path / ".codex" / "state"
-    research = tmp_path / ".codex" / "research"
+    research = tmp_path / "report"
     state.mkdir(parents=True)
     research.mkdir(parents=True)
     handoff = state / "handoff.json"
@@ -346,8 +346,10 @@ def test_stale_handoff_stop_is_not_marked_complete_until_retry(tmp_path):
         )
 
     first = stop(False)
-    assert '"decision": "block"' in first.stdout
-    assert AUDIT.verify_run(run_id, root=tmp_path)["status"] == "running"
-    second = stop(True)
-    assert second.stdout == ""
+    assert first.returncode == 0
+    assert first.stdout == ""
     assert AUDIT.verify_run(run_id, root=tmp_path)["status"] == "completed"
+    ledger = (
+        tmp_path / ".codex" / "runs" / run_id / "events.jsonl"
+    ).read_text(encoding="utf-8")
+    assert '"continuity_current":false' in ledger

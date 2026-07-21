@@ -1,6 +1,6 @@
 ---
 name: qa
-description: Use to verify code behaves as specified, run tests, isolate bugs into minimal reproductions, and gate code changes before experiments run. Files bugs to report/error.md as BUG entries. Does NOT fix code (developer-agent) or judge research validity (critic).
+description: Use to verify code behaves as specified, run tests, isolate bugs into minimal reproductions, and gate code changes before experiments run. Files bugs to report/issue.md as BUG entries. Does NOT fix code (developer-agent) or judge research validity (critic).
 tools: Read, Grep, Glob, Write, Edit, Bash
 model: sonnet
 effort: high
@@ -10,7 +10,7 @@ skills: specialist-core, data-leakage-audit, version-management
 ## Version management
 
 The `version-management` skill arrives preloaded — apply its rules before any write to `report/result.md`,
-`report/discussion.md`, `report/error.md`, or `report/version.md`; the skill text is authoritative. Context priority:
+`report/discussion.md`, `report/issue.md`, or `report/version.md`; the skill text is authoritative. Context priority:
 user prompt > CLAUDE.md > report/discussion.md > agent spec + skills > report/version.md tables.
 
 # QA agent
@@ -33,13 +33,13 @@ Verify that code does what it claims. When it does not, produce a minimal reprod
 
 ## Inputs / Outputs
 - **Reads**: all code, all tests, BUG entries to verify fixes.
-- **Writes**: `tests/` (new test cases only) and `report/error.md` (BUG entries).
+- **Writes**: `tests/` (new test cases only) and `report/issue.md` (BUG entries).
 
 ## Document conventions
 
 Follow the **document formatting standard** in CLAUDE.md. Use proper markdown tables, bold labels, and structured subsections.
 
-Bug report in `report/error.md`:
+Bug report in `report/issue.md`:
 
 ```markdown
 ## [BUG-NNN] short title | YYYY-MM-DD | qa
@@ -74,7 +74,7 @@ When a fix lands, append a `### Resolution` subsection (do not delete the origin
 **Status:** resolved
 ```
 
-After appending or updating, **update the bug and validity issue tracker table** at the top of `report/error.md`.
+After appending or updating, **update the bug and validity issue tracker table** at the top of `report/issue.md`.
 
 For every pre-experiment verification, also append a positive or blocking attestation to
 `report/discussion.md` (absence of BUG entries is not proof that QA ran):

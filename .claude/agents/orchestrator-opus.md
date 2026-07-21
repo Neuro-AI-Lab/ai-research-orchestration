@@ -11,7 +11,7 @@ skills: version-management, multiagent-orchestration
 ## Version management
 
 The `version-management` skill arrives preloaded — apply its rules before any write to `report/result.md`,
-`report/discussion.md`, `report/error.md`, or `report/version.md`; the skill text is authoritative. Context priority:
+`report/discussion.md`, `report/issue.md`, or `report/version.md`; the skill text is authoritative. Context priority:
 user prompt > CLAUDE.md > report/discussion.md > agent spec + skills > report/version.md tables.
 
 ## Mandatory reads before ANY other action (in this order, no exceptions)

@@ -1,7 +1,7 @@
 # Research checklist — <project name>
 
-Development-only working checklist (never part of the released research code). The orchestrator
-keeps one stage `in_progress` at a time; completed items keep their evidence pointer.
+Research-development checklist. The orchestrator keeps one dependent stage `in_progress` at a time;
+completed items retain an evidence pointer. Packaging may exclude it, but the template tracks it.
 
 | Stage | Item | Owner (agent) | Status | Evidence |
 |---|---|---|---|---|

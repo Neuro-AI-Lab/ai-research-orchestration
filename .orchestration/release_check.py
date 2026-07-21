@@ -10,14 +10,22 @@ from urllib.parse import unquote, urlsplit
 
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ROOT_DOCS = ("discussion.md", "result.md", "error.md", "version.md", "CODEX.md")
+ROOT_DOCS = ("discussion.md", "result.md", "error.md", "issue.md", "version.md", "CODEX.md")
 RESEARCH_DOCS = tuple(
-    ".{}/templates/research/{}".format(backend, name)
+    ".{}/templates/report/{}".format(backend, name)
     for backend in ("codex", "claude")
-    for name in ("discussion.md", "result.md", "error.md", "version.md")
+    for name in ("discussion.md", "result.md", "issue.md", "version.md")
 )
-CLAUDE_PLAN_TEMPLATES = (
+PLAN_TEMPLATES = (
+    ".codex/templates/plan/PRD.md", ".codex/templates/plan/CHECKLIST.md",
     ".claude/templates/plan/PRD.md", ".claude/templates/plan/CHECKLIST.md",
+)
+WORKSPACE_FILES = (
+    "plan/PRD.md", "plan/CHECKLIST.md", "report/discussion.md", "report/issue.md",
+    "report/result.md", "report/version.md",
+)
+WORKSPACE_DIRS = (
+    "plan", "report", "data", "model", "experiments", "analysis", "functionals", "utils",
 )
 PUBLIC_DOCS = (
     "README.md", "README.ko.md",
@@ -37,6 +45,7 @@ DOC_PAIRS = (
 )
 LEGACY_PUBLIC_DOCS = (
     "SETUP.md", "SETUP.ko.md", "SECURITY.md", "SECURITY.ko.md", "CONTRIBUTING.md",
+    "PROJECT_MAP.md",
     "docs/AI_RESEARCH_PROMPTS.md", "docs/AI_RESEARCH_PROMPTS.ko.md",
     "docs/COMPATIBILITY.md", "docs/COMPATIBILITY.ko.md",
     "docs/FEATURES.md", "docs/FEATURES.ko.md",
@@ -46,13 +55,13 @@ LEGACY_PUBLIC_DOCS = (
     ".claude/ZOTERO.md", ".claude/OVERLEAF.md",
 )
 REQUIRED = PUBLIC_DOCS + (
-    "AGENTS.md", "CLAUDE.md", "LICENSE", "requirements.txt", "requirements-dev.txt",
+    "AGENTS.md", "CLAUDE.md", "LICENSE", "requirements.txt",
     "orchestrate", "setup.sh", "run.sh", "evaluate.sh", ".mcp.json",
     ".codex/ORCHESTRATION.md", ".codex/config.toml",
     ".codex/hooks/audit_event.py", ".codex/scripts/orchestration_audit.py",
-    ".claude/settings.json", *CLAUDE_PLAN_TEMPLATES,
+    ".claude/settings.json", *PLAN_TEMPLATES, *WORKSPACE_FILES,
     ".orchestration/launcher.py", ".orchestration/isolation.py",
-    ".orchestration/validate_system.py",
+    ".orchestration/project_map.json", ".orchestration/validate_system.py",
 )
 INTERNAL_PREFIXES = (
     ".orchestration/evals/", ".orchestration/reports/", "evaluation/orchestration/",
@@ -105,6 +114,12 @@ def main():
             passed(path + " present")
         else:
             fail(path + " missing")
+
+    for path in WORKSPACE_DIRS:
+        if os.path.isdir(os.path.join(ROOT, path)):
+            passed(path + "/ workspace directory present")
+        else:
+            fail(path + "/ workspace directory missing")
 
     public_content = {}
     for path in PUBLIC_DOCS:
@@ -177,6 +192,16 @@ def main():
         else:
             passed(path + " absent (guidance is consolidated)")
 
+    allowed_root_markdown = {"README.md", "README.ko.md", "AGENTS.md", "CLAUDE.md"}
+    extra_root_markdown = sorted(
+        path for path in candidate_files()
+        if "/" not in path and path.endswith(".md") and path not in allowed_root_markdown
+    )
+    if extra_root_markdown:
+        fail("unexpected root Markdown documents: " + ", ".join(extra_root_markdown))
+    else:
+        passed("root Markdown footprint is limited to entry policy and overview files")
+
     for path in ("orchestrate", "setup.sh", "run.sh", "evaluate.sh"):
         full = os.path.join(ROOT, path)
         if not os.path.isfile(full) or os.path.getsize(full) == 0:
@@ -214,7 +239,7 @@ def main():
         else:
             passed(path + " absent (provider state is isolated)")
 
-    for path in RESEARCH_DOCS + CLAUDE_PLAN_TEMPLATES:
+    for path in RESEARCH_DOCS + PLAN_TEMPLATES + WORKSPACE_FILES:
         try:
             with open(os.path.join(ROOT, path), encoding="utf-8") as handle:
                 content = handle.read()
@@ -262,6 +287,7 @@ def main():
         ".claude/agent-memory/probe/MEMORY.md", ".claude/runs/probe.json",
         "tests/repro/probe.py",
         "docs/validation/probe.md",
+        "experiments/runs/EXP-999/status.json",
     )
     not_ignored = [
         path for path in ignore_probes if run("git", "check-ignore", "-q", path).returncode
@@ -270,6 +296,18 @@ def main():
         fail("private/internal paths are not ignored: " + ", ".join(not_ignored))
     else:
         passed("private state, generated artifacts, and maintainer history are ignored")
+
+    wrongly_ignored_workspace = [
+        path for path in (
+            "plan/PRD.md", "report/discussion.md", "data/example.csv", "model/model.py",
+            "experiments/train.py", "analysis/analyze.py", "functionals/loss.py", "utils/io.py",
+        )
+        if run("git", "check-ignore", "-q", path).returncode == 0
+    ]
+    if wrongly_ignored_workspace:
+        fail("canonical workspace paths are ignored: " + ", ".join(wrongly_ignored_workspace))
+    else:
+        passed("canonical workspace paths are distribution-visible")
 
     tracked_live = sorted(
         name for name in tracked
@@ -355,7 +393,8 @@ def main():
 
     for path in (".mcp.json", ".claude/settings.json",
                  ".claude/settings.local.json.example", ".claude/state/handoff.json.example",
-                 ".codex/settings.local.json.example", ".codex/state/handoff.json.example"):
+                 ".codex/settings.local.json.example", ".codex/state/handoff.json.example",
+                 ".orchestration/project_map.json"):
         try:
             with open(os.path.join(ROOT, path), encoding="utf-8") as handle:
                 json.load(handle)

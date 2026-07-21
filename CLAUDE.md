@@ -80,7 +80,7 @@ Reusable research disciplines in `.claude/skills/<name>/SKILL.md`. Skills listed
 
 | Skill | Purpose | Agent(s) |
 |---|---|---|
-| `version-management` | Four-document lifecycle: report/result.md/discussion.md/error.md (current version) + report/version.md (archive). Archive before reset. User prompt is highest priority. | All agents except `developer` |
+| `version-management` | Four-document lifecycle: report/result.md/discussion.md/issue.md (current version) + report/version.md (archive). Archive before reset. User prompt is highest priority. | All agents except `developer` |
 | `multiagent-orchestration` | Orchestrator-worker playbook: fleet sizing, BRIEF/RESULT/HANDOFF contracts, parallel-reads/serial-writes, failure ladders | `orchestrator`, `orchestrator-opus` |
 | `specialist-core` | Sonnet 5 uplift core: deliberate thinking, bias to act, verify-before-done, faithful condensed reporting, trust boundary | All 8 specialists |
 | `hypothesis-design` | Falsifiable hypothesis formulation with quality checklist | `brainstorm` |
@@ -123,13 +123,13 @@ Keep handoff.json dense — the next session reads it cold.
 
 ## The four documents
 
-The project uses a **version-gated document system**. Three working docs (`report/result.md`, `report/discussion.md`, `report/error.md`) contain only the **current version's** content. One archive doc (`report/version.md`) accumulates the full project history.
+The project uses a **version-gated document system**. Three working docs (`report/result.md`, `report/discussion.md`, `report/issue.md`) contain only the **current version's** content. One archive doc (`report/version.md`) accumulates the full project history.
 
 | File | Scope | Purpose | Entry types |
 |---|---|---|---|
 | `report/result.md` | **Current version only** | Experiment results and narrative summaries | `EXP-NNN`, `REPORT-YYYY-MM-DD` |
 | `report/discussion.md` | **Current version only** | Hypotheses, reviews, QA attestations, decisions, plans, state | `HYP-NNN`, `RES-NNN`, `DATASET-NNN`, `REV-NNN`, `QA-NNN`, `ADR-NNN`, `PLAN-YYYY-WW`, `STATE-YYYY-MM-DD`, `REPORT-YYYY-WW` |
-| `report/error.md` | **Current version only** | Bugs and validity issues | `BUG-NNN` (qa), `VAL-NNN` (critic) |
+| `report/issue.md` | **Current version only** | Bugs and validity issues | `BUG-NNN` (qa), `VAL-NNN` (critic) |
 | `report/version.md` | **Cumulative archive** | Version history, archived summaries, dependency snapshots | `VER-NNN`, `CLEAN-YYYY-MM-DD` |
 
 ### Version lifecycle
@@ -138,7 +138,7 @@ The project uses a **version-gated document system**. Three working docs (`repor
 [Working phase]                    [Version transition]                [New version]
 report/result.md     ─── current work ──► archived into VER-NNN ──────────► cleared (fresh)
 report/discussion.md ─── current work ──► archived into VER-NNN ──────────► cleared (fresh)
-report/error.md      ─── current work ──► critical/open items in VER-NNN ─► cleared (fresh)
+report/issue.md      ─── current work ──► critical/open items in VER-NNN ─► cleared (fresh)
 report/version.md    ─── cumulative   ──► receives VER-NNN entry ─────────► keeps growing
 ```
 
@@ -154,14 +154,14 @@ The `orchestrator` initiates version transitions. The `filemanager` writes the `
 
 When a version transition is triggered:
 
-1. `writer` produces a **condensed version summary** covering report/result.md, report/discussion.md, and report/error.md. This summary includes:
+1. `writer` produces a **condensed version summary** covering report/result.md, report/discussion.md, and report/issue.md. This summary includes:
    - Key results with headline numbers (from EXP/REPORT entries)
    - Open issues and their severity (from REV/BUG entries)
    - Decisions made (from ADR entries)
    - Hypotheses and their status (from HYP entries)
    - Dataset state (from DATASET entries)
 2. `filemanager` writes a `VER-NNN` entry to `report/version.md` containing the summary, environment snapshot, and linked entry IDs.
-3. `report/result.md`, `report/discussion.md`, and `report/error.md` are **reset** to their template headers with empty summary tables. Any **open** items (unresolved BUGs, open REVs, active HYPs, active DATASETs) are carried forward into the new version's docs with a `Carried from VER-NNN` annotation.
+3. `report/result.md`, `report/discussion.md`, and `report/issue.md` are **reset** to their template headers with empty summary tables. Any **open** items (unresolved BUGs, open REVs, active HYPs, active DATASETs) are carried forward into the new version's docs with a `Carried from VER-NNN` annotation.
 4. Entry ID counters continue incrementing globally (never reset). EXP-005 in VER-002 is followed by EXP-006 in VER-003.
 
 ### What agents read at session start
@@ -239,7 +239,7 @@ If leakage is discovered mid-project, every experiment that used the leaky code 
 
 ### Document formatting standard (all agents must follow)
 
-All four Claude research docs (`report/result.md`, `report/error.md`, `report/discussion.md`, `report/version.md`) are formatted as **readable reports**, not raw logs. Every agent that writes to a Claude research doc must follow these rules:
+All four Claude research docs (`report/result.md`, `report/issue.md`, `report/discussion.md`, `report/version.md`) are formatted as **readable reports**, not raw logs. Every agent that writes to a Claude research doc must follow these rules:
 
 1. **Summary tables at the top.** Each Claude research doc has one or more summary tables (grouped by entry type) providing an at-a-glance overview. When you append a new entry, you must also add a row to the corresponding summary table.
 
@@ -269,7 +269,7 @@ project/
 ├── CLAUDE.md                 # this file (injected into every agent context)
 ├── plan/                     # development-only: PRD.md, CHECKLIST.md (orchestrator <-> user)
 ├── report/                   # development-only: report/discussion.md (hypotheses, reviews, decisions),
-│                             #   report/error.md (issue log), report/result.md, report/version.md —
+│                             #   report/issue.md, report/result.md, report/version.md —
 │                             #   the written collaboration space between the user and the agent team
 ├── data/                     # development-only: datasets, splits, preprocessing (data agent; gitignored)
 ├── model/                    # develop-and-release: model source code (developer)
@@ -350,7 +350,7 @@ Rules are skippable, but skipping must be explicit. To bypass a mandatory gate (
 - Why.
 - What the rollback plan is if the skip turns out to have been wrong.
 
-A skipped gate without an ADR is a process bug. If you find one, file it to `report/error.md` as a `VAL-NNN`.
+A skipped gate without an ADR is a process bug. If you find one, file it to `report/issue.md` as a `VAL-NNN`.
 
 After writing the bypass ADR, prefix the launch command with `GATE_OVERRIDE=ADR-NNN` — the
 mechanical gate hook verifies that the cited ADR exists and contains Context, Decision,

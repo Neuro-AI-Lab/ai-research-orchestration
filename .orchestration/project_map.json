@@ -1,0 +1,77 @@
+{
+  "purpose": "Machine-readable path map for new-project adaptation. Human guide: docs/orchestration/PROJECT_MAP.md (+ .ko.md). Consumed by `./orchestrate init` to print the adaptation checklist for either backend.",
+  "categories": {
+    "research-workspace": {
+      "action": "keep — your project's working space",
+      "paths": [
+        "plan/",
+        "report/",
+        "data/",
+        "model/",
+        "experiments/",
+        "analysis/",
+        "functionals/",
+        "utils/"
+      ]
+    },
+    "orchestration-core": {
+      "action": "keep — required for the agent system to run",
+      "paths": [
+        "CLAUDE.md",
+        ".claude/",
+        "AGENTS.md",
+        ".codex/",
+        ".agents/",
+        ".mcp.json",
+        "orchestrate",
+        ".orchestration/",
+        "run.sh",
+        "evaluate.sh",
+        "setup.sh",
+        ".gitignore"
+      ]
+    },
+    "template-dev-only": {
+      "action": "safe to delete in a real research project",
+      "paths": [
+        "tests/",
+        ".github/",
+        "docs/"
+      ],
+      "notes": {
+        "tests/": "validates the template's own orchestration system; keep only if you want to re-verify the system after modifying it",
+        ".github/": "the template's distribution CI; replace with your project's CI",
+        "docs/": "template usage guides (docs/orchestration/); delete after reading or keep as reference"
+      }
+    },
+    "adapt-and-rewrite": {
+      "action": "keep the file, truncate/rewrite its content for the new project",
+      "files": {
+        "README.md": {
+          "marker": "# AI Research Orchestration",
+          "advice": "replace with your project's README"
+        },
+        "README.ko.md": {
+          "marker": "# AI 연구 오케스트레이션",
+          "advice": "replace with your project's Korean README (or delete)"
+        },
+        "LICENSE": {
+          "marker": "Copyright (c) 2026 Dae Hyeon Kim",
+          "advice": "set your project's license and holder"
+        },
+        "requirements.txt": {
+          "marker": "add your",
+          "advice": "replace with your project's dependencies (single file; drop pytest lines if you delete tests/)"
+        },
+        "plan/PRD.md": {
+          "marker": "<project name>",
+          "advice": "fill in your project's PRD with the orchestrator"
+        },
+        "plan/CHECKLIST.md": {
+          "marker": "<project name>",
+          "advice": "fill in your project's checklist with the orchestrator"
+        }
+      }
+    }
+  }
+}

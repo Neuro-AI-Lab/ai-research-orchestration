@@ -1,7 +1,7 @@
 # Product requirements — <project name>
 
-Development-only planning document (never part of the released research code). Owned by the
-orchestrator; updated when scope changes, reviewed by the user.
+Research-development planning document. Owned by the orchestrator, updated when scope changes, and
+reviewed by the user. Packaging may exclude it, but the template does not blanket-ignore it.
 
 ## Problem and goal
 

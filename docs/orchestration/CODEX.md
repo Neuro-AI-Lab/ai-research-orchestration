@@ -16,10 +16,13 @@ orchestrator subagent, and specialists must not create another delegation layer.
 | `.codex/fleets/` | `quality`, `balanced`, and `fast` specialist settings |
 | `.agents/skills/` | reusable research procedures |
 | `.codex/scripts/` | literature, Zotero, Overleaf, run-status, and audit utilities |
-| `experiments/codex/`, `analysis/codex/` | generated provider-owned artifacts |
+| `plan/`, `report/`, `data/` | tracked research planning, evidence/state, datasets, and preprocessing assets |
+| `model/`, `experiments/`, `analysis/` | model source, experiment code/configs, analysis code and reviewed outputs |
+| `functionals/`, `utils/` | reusable research functions and generic utilities |
+| `experiments/runs/` | ignored generated runs, logs, checkpoints, and metrics |
 
-Initialization creates ignored settings, research state, memory, handoff, and run records. They are
-local research data, not distribution content.
+Initialization creates ignored settings, memory, handoff, and audit records, and completes missing
+clean workspace files. Provider-private runtime data is not distribution content.
 
 ## Install and launch
 
@@ -36,9 +39,9 @@ codex --version
 ./orchestrate codex --preset quality
 ```
 
-`init` saves Codex as the checkout default. An explicit launch of another backend is currently
-allowed with a warning, but code, data, and entry scripts are shared. Use a separate checkout for
-provider comparisons and never run both against the same working files concurrently.
+`init` binds the checkout to Codex. The launcher fails closed if another backend is requested because
+the selected provider owns the root research workspace. Use a separate clone or worktree for every
+provider comparison.
 
 `doctor` checks static configuration, selected models, hooks, local state, MCP server handshakes, and
 provider path isolation. It does not prove that the installed native runtime bound a spawned agent to
@@ -87,22 +90,40 @@ Codex sandbox. Use it only inside an external isolation boundary you control. Pe
 not demonstrate that critic, QA, leakage, RESULT, or experiment checks ran; require their recorded
 evidence separately.
 
-In safe mode, the runtime may request narrow approval to write ignored state under `.codex/`. Review
-the exact path; do not approve unrelated or broad filesystem access.
+In safe mode, the runtime may request narrow approval to write provider-private state under
+`.codex/`. Review the exact path; do not approve unrelated or broad filesystem access.
+
+## Workspace and file ownership
+
+| Path | Owner | Contents |
+|---|---|---|
+| `plan/PRD.md`, `plan/CHECKLIST.md` | root conductor-orchestrator | user-approved scope, acceptance criteria, stage/evidence tracker |
+| `report/discussion.md` | entry owner; serialized by root | HYP, RES, DATASET, REV, QA, ADR, PLAN, STATE, user-agent discussion |
+| `report/issue.md` | `qa`, `critic` | BUG and research-validity VAL entries |
+| `report/result.md`, `report/version.md` | tracker/writer, filemanager | EXP/REPORT records and append-only phase archive |
+| `data/` | `data` | raw/interim/processed assets, manifests, splits, dataset-specific preprocessing |
+| `model/` | `developer` | model architectures, objectives, and model-facing source |
+| `experiments/` | developer, then tracker | tracked entrypoints/configs; generated evidence only in `runs/EXP-NNN/` |
+| `analysis/` | data, then critic | EDA and inferential analysis code, reviewed tables and figures |
+| `functionals/`, `utils/` | `developer` | domain pipeline functions; generic dependency-light helpers |
+
+Keep reusable preprocessing in `functionals/`, not duplicated in notebooks or run directories. The
+repository does not blanket-ignore `data/`, `plan/`, or `report/`; apply the research project's data
+license, privacy, and size policy before committing their contents.
 
 ## Research workflow
 
 | Stage | Specialist | Required evidence |
 |---|---|---|
-| literature | `brainstorm` | primary-source map, stable IDs, caveats |
+| literature | `brainstorm` | `report/literature/`, RES/HYP in `report/discussion.md` |
 | hypothesis | `brainstorm` | prediction, falsifier, baseline, metric, effect threshold |
 | plan review | `critic` | passed/blocked REV with resolution criteria |
-| data | `data` | provenance, license, split unit, hashes, leakage audit |
-| implementation | `developer` | accepted scope, config, deterministic tests |
-| independent QA | `qa` | inspected diff, executed checks, passed/blocked QA |
-| execution | `experiment-tracker` | code/data/config provenance, seeds, logs, failures |
-| analysis | `critic` | effect size, uncertainty, sensitivity, limitations |
-| writing | `writer` | claim-evidence map and verified references |
+| data | `data` | `data/`, DATASET provenance/hash and leakage audit |
+| implementation | `developer` | `model/`, `experiments/`, `functionals/`, `utils/`, tests |
+| independent QA | `qa` | QA in discussion, BUG in `report/issue.md` |
+| execution | `experiment-tracker` | `experiments/runs/EXP-NNN/`, EXP in result |
+| analysis | `critic` | `analysis/`, effect size, uncertainty, sensitivity, limitations |
+| writing | `writer` | `report/` claim map/draft and verified references |
 | final review | `critic`, then `qa` | scientific and artifact/citation clearance |
 
 Every dispatch uses BRIEF -> RESULT. A dependent stage receives a HANDOFF built only from the actual
@@ -136,8 +157,10 @@ identifiers and mark every unverified claim.
 ```text
 From accepted HYP-<id>, REV-<id>, and DATASET-<id>, spawn developer to implement one reproducible
 baseline/treatment slice with explicit config, seeds, train/test boundaries, tests, and resume points.
-Do not launch the research experiment. Then spawn qa independently against the actual diff and run
-the stated checks. Report both native IDs and both RESULT blocks; do not weaken tests or hide failures.
+Put model source in model/, experiment entrypoints/configs in experiments/, reusable research logic in
+functionals/, and generic helpers in utils/. Do not launch the research experiment. Then spawn qa
+independently against the actual diff and run the stated checks. Report both native IDs and both
+RESULT blocks; do not weaken tests or hide failures.
 ```
 
 ### Experiment and analysis request
@@ -146,7 +169,8 @@ the stated checks. Report both native IDs and both RESULT blocks; do not weaken 
 Before EXP-<id>, verify passed DATASET, critic, and QA entries and stop on any open blocker. Spawn
 experiment-tracker to run only the approved command and record commit, dirty state, config, seeds,
 model, dataset hash, environment, hardware, logs, metrics, and failures. After raw results exist,
-spawn critic to report sample size, paired structure, effect sizes, uncertainty, multiple-comparison
+retain them under experiments/runs/EXP-<id>/. Then spawn critic to write analysis/ code and report
+sample size, paired structure, effect sizes, uncertainty, multiple-comparison
 handling, failed runs, sensitivity, practical significance, and limitations.
 ```
 
@@ -213,13 +237,13 @@ transcript paths. Treat it as private local evidence, not a remote attestation.
 Important current boundaries:
 
 - `doctor` and release tests are necessary but do not replace the native smoke test.
-- Codex `Stop` hooks run at turn scope. A continuity hook that treats every Stop as session close can
-  repeat when research state or experiment heartbeat files are newer than the handoff. Do not treat
-  that prompt as a scientific failure; update the handoff and report repeated blocking as a runtime
-  compatibility issue.
+- Codex `Stop` runs at turn scope. The shipped continuity hook records handoff freshness but never
+  blocks an ordinary turn; the next SessionStart reconstructs critical gates and running jobs from
+  `report/` and `experiments/runs/`.
 - `run_with_status.sh` records process state, heartbeat, log, and exit code. It does not by itself
   prove research-gate clearance or capture the complete reproducibility record. Verify gates before
-  launch and retain the full provenance named above.
+  launch and retain the full provenance named above. For sweeps use
+  `run_with_status.sh EXP-NNN --tag RUN-TAG -- <command>` and then `sweep_summary.py` on the EXP path.
 - `Status: completed` in a local audit must not be treated as process exit proof when later events are
   present. Inspect the event order and unverified claims.
 

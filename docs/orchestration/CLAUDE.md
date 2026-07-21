@@ -17,10 +17,11 @@ as delegated research.
 | `.claude/skills/`, `.claude/prompts/` | research procedures and orchestration contracts |
 | `.claude/hooks/` | RESULT, continuity, experiment, and provider-state checks |
 | `.claude/scripts/` | literature, Zotero, Overleaf, and run-status utilities |
-| `experiments/runs/`, `analysis/` | generated provider-owned artifacts |
+| `plan/`, `report/`, `data/` | tracked research planning, records, datasets, and preprocessing assets |
+| `model/`, `experiments/`, `analysis/`, `functionals/`, `utils/` | develop-and-release workspace |
 
-Initialization creates ignored settings, research state, agent memory, and handoff files. They are
-local research data, not distribution content.
+Initialization creates ignored settings, agent memory, and handoff files and completes missing clean
+workspace files. Provider-private runtime data is not distribution content.
 
 ## Research workspace layout
 
@@ -30,8 +31,8 @@ two lifecycle groups:
 | Group | Directory | Owner (agent) | Purpose |
 |---|---|---|---|
 | development-only | `plan/` | orchestrator | `PRD.md` and `CHECKLIST.md`, agreed with the user |
-| development-only | `report/` | entry-typed multi-writer | `discussion.md`, `error.md` (issue log), `result.md`, `version.md` — the written discussion space between you and the agent team |
-| development-only | `data/` | data | datasets, splits, preprocessing (never committed) |
+| development-only | `report/` | entry-typed multi-writer | `discussion.md`, `issue.md`, `result.md`, `version.md` — the written discussion space between you and the agent team |
+| development-only | `data/` | data | datasets, splits, and preprocessing assets subject to project data policy |
 | develop-and-release | `model/` | developer | model source code |
 | develop-and-release | `experiments/` | developer (+ tracker in `runs/`) | experiment and evaluation code; per-run records in `runs/` |
 | develop-and-release | `analysis/` | data | result-analysis code and notebooks |
@@ -40,8 +41,9 @@ two lifecycle groups:
 | develop-and-release | `tests/` | developer, qa | reusable verification and research regression tests |
 | develop-and-release | `docs/` | writer | public reports and paper artifacts |
 
-Development-only content never ships when you release your research; the develop-and-release dirs
-are the publishable core. Write authority per directory is enforced by `CLAUDE.md`'s ownership map.
+Development-only describes packaging scope, not Git ignore behavior: `plan/`, `report/`, and `data/`
+are not blanket-ignored. Commit them only when privacy, licensing, and size rules allow. The
+develop-and-release directories are the publishable code core.
 
 ## Install and launch
 
@@ -59,9 +61,8 @@ claude --version
 ./orchestrate claude --preset quality
 ```
 
-`init` saves Claude as the checkout default. An explicit launch of another backend is currently
-allowed with a warning, but code, data, and entry scripts are shared. Use a separate checkout for
-provider comparisons and never run both against the same working files concurrently.
+`init` binds the checkout to Claude. The launcher refuses another backend because the selected
+provider owns the root research workspace. Use a separate clone or worktree for comparisons.
 
 `doctor` validates files, manifests, settings, provider paths, and installed CLI capability. It does
 not prove that a real runtime dispatch used the requested specialist, model, or contract.

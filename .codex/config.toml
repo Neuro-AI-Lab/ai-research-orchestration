@@ -21,7 +21,7 @@ description = "Adversarial research-validity reviewer and mandatory plan/result 
 config_file = "fleets/quality/critic.toml"
 
 [agents.developer]
-description = "Implementation specialist for models, evaluation code, and experiment entrypoints."
+description = "Implementation specialist for model, experiment, functional, utility, and test code."
 config_file = "fleets/quality/developer.toml"
 
 [agents.qa]

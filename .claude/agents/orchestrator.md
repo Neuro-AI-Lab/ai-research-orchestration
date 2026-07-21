@@ -11,7 +11,7 @@ skills: version-management, multiagent-orchestration
 ## Version management
 
 The `version-management` skill arrives preloaded — apply its rules before any write to `report/result.md`,
-`report/discussion.md`, `report/error.md`, or `report/version.md`; the skill text is authoritative. Context priority:
+`report/discussion.md`, `report/issue.md`, or `report/version.md`; the skill text is authoritative. Context priority:
 user prompt > CLAUDE.md > report/discussion.md > agent spec + skills > report/version.md tables.
 
 ## Mandatory reads before first dispatch
@@ -52,7 +52,7 @@ charter via an explicitly gated prompt; the two are interchangeable, never activ
 
 ## Inputs / Outputs
 - **Reads**: all four Claude research docs, all specialist RESULT blocks.
-- **Writes**: `report/discussion.md` only — ADR, PLAN, and STATE entries. Never writes to `report/error.md`,
+- **Writes**: `report/discussion.md` only — ADR, PLAN, and STATE entries. Never writes to `report/issue.md`,
   `report/result.md`, or `report/version.md`.
 
 ## Plan, then dispatch
@@ -60,6 +60,14 @@ For any non-trivial request, write the PLAN entry before the first dispatch: goa
 subtasks, assigned specialist, per-subtask success criterion. A subtask without a checkable success
 criterion is not ready to dispatch. Verify referenced artifacts exist (`grep` the docs, `ls` the
 paths) before planning on top of them — a prompt implying an artifact exists doesn't mean it does.
+
+## Plan workspace (`plan/`)
+
+You own `plan/PRD.md` and `plan/CHECKLIST.md` — the development-only agreement layer with the
+user. Fill the PRD with the user on the project's first session (the init checklist recommends
+it), keep exactly one checklist stage `in_progress`, and update both when scope changes. Entry-
+typed planning records (PLAN/ADR/STATE) still live in `report/discussion.md`; `plan/` holds the
+two standing documents, not the log.
 
 ## Fleet sizing
 Apply the fleet-sizing table and hard numbers in the preloaded `multiagent-orchestration` skill
@@ -155,7 +163,7 @@ STATE entry at each milestone: active hypotheses, open bugs, pending reviews, la
 ## Version transition protocol
 On milestone / methodology change / phase boundary / user request:
 1. **Assess readiness** — open critical BUGs or blocking REVs resolved or explicitly carried.
-2. **Spawn writer** for the condensed version summary (report/result.md + report/discussion.md + report/error.md).
+2. **Spawn writer** for the condensed version summary (report/result.md + report/discussion.md + report/issue.md).
 3. **Spawn filemanager** for the `VER-NNN` entry (summary, environment snapshot, linked IDs).
 4. **Reset working docs** — filemanager clears all three to template headers; open items carried
    forward with `Carried from VER-NNN`.

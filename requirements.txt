@@ -1,2 +1,6 @@
-# Project runtime dependencies belong here.
-# The orchestration core and onboarding example use only the Python standard library.
+# Single dependency file for this project.
+# - Runtime: the orchestration core uses only the Python standard library — add your
+#   research project's runtime dependencies below this line.
+# - Validation (template test suites; remove if you delete tests/):
+pytest>=7,<9
+pytest-timeout==2.4.0

@@ -30,15 +30,6 @@ Thumbs.db
 wandb/
 /runs/
 
-# Local development-only research workspace. Keep the directory skeleton in the
-# distribution; `./orchestrate init <provider>` creates the ignored live documents.
-/plan/*
-!/plan/.gitkeep
-/report/*
-!/report/.gitkeep
-/data/*
-!/data/.gitkeep
-
 # Experiment source/configuration is distributable; run outputs are not.
 /experiments/runs/
 

@@ -1,6 +1,6 @@
-# Codex research versions
+# Research versions
 
-Append-only archived phases, environment snapshots, and cleanup records.
+Append-only archived phases and environment snapshots for the provider selected in this checkout.
 
 ## Summary
 
@@ -10,7 +10,7 @@ Append-only archived phases, environment snapshots, and cleanup records.
 
 <!--
 ## [VER-NNN] milestone | YYYY-MM-DD | filemanager
-**Git:** commit, branch, tag
+**Git:** verified commit, branch, and tag, or `uncommitted`
 **Summary:** ...
 **Changes since last:** ...
 **Environment:** Python, dependencies, accelerator, lock hash

@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 """PreToolUse hook: mechanical enforcement of the experiment gates.
 
-Blocks Bash commands that launch experiments (run.sh / evaluate.sh / python models/*.py)
+Blocks Bash commands that launch experiments (run.sh / evaluate.sh / Python entrypoints under
+model/ or experiments/)
 while any mandatory gate is unmet:
-  - open critical BUG in .codex/research/error.md
-  - open blocking REV in .codex/research/discussion.md
+  - open critical BUG in report/issue.md
+  - open blocking REV in report/discussion.md
   - no passed critic REV in the Codex discussion
   - no passed QA entry in the Codex discussion
   - no leakage-audited DATASET entry        (positive data attestation)
 
-Documented bypass (mirrors .codex/ORCHESTRATION.md "When to break the rules"): write an ADR in
-.codex/research/discussion.md naming the skipped rule, reason, and rollback plan, then prefix the
+Documented bypass: write an ADR in report/discussion.md naming the skipped rule, reason, and rollback
+plan, then prefix the
 command with GATE_OVERRIDE=ADR-NNN. The hook verifies the ADR exists and carries the mandatory
 Context, Decision, Consequences, and Rollback fields.
 
@@ -21,7 +22,7 @@ import os
 import re
 import sys
 
-# Match run.sh / evaluate.sh / python models/*.py only in COMMAND-WORD position within a
+# Match run.sh / evaluate.sh / Python model or experiment entrypoints only in COMMAND-WORD position within a
 # shell command *segment* — never as a substring anywhere in the text. A segment is what
 # runs between shell control operators (;, &, &&, |, ||, (, )) or at the very start of the
 # command. Within a segment, the command word may be preceded by env-var assignments
@@ -38,7 +39,12 @@ _ENV_ASSIGN = r'(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*'
 _INTERPRETER = r'(?:(?:bash|sh|zsh|setsid|nohup|exec|source)\s+|\.\s+)?'
 _PATH_PREFIX = r'(?:\./)?(?:[\w.-]+/)*'
 _SCRIPT_LAUNCH = re.compile(r'^' + _ENV_ASSIGN + _INTERPRETER + _PATH_PREFIX + r'(run|evaluate)\.sh\b')
-_PYTHON_LAUNCH = re.compile(r'^' + _ENV_ASSIGN + r'python[0-9.]*\s+\S*models/\S+\.py')
+_STATUS_WRAPPER_LAUNCH = re.compile(
+    r'^' + _ENV_ASSIGN + _INTERPRETER + _PATH_PREFIX + r'run_with_status\.sh\b'
+)
+_PYTHON_LAUNCH = re.compile(
+    r'^' + _ENV_ASSIGN + r'python[0-9.]*\s+\S*(?:model|experiments)/\S+\.py'
+)
 
 # Heredoc start marker: `<<WORD`, `<<-WORD` (indented terminator), `<<'WORD'`/`<<"WORD"`
 # (quoted, suppresses expansion) or `<<\WORD` (backslash-escaped, same effect). The captured
@@ -83,7 +89,8 @@ def _heredoc_shell_launches(cmd):
             continue
         for segment in _split_segments('\n'.join(body)):
             candidate = segment.strip()
-            if _SCRIPT_LAUNCH.match(candidate) or _PYTHON_LAUNCH.match(candidate):
+            if (_SCRIPT_LAUNCH.match(candidate) or _STATUS_WRAPPER_LAUNCH.match(candidate)
+                    or _PYTHON_LAUNCH.match(candidate)):
                 launches.append(header_segment)
     return launches
 
@@ -212,7 +219,8 @@ def find_launch_segments(cmd):
         segment = segment.strip()
         if not segment:
             continue
-        if _SCRIPT_LAUNCH.match(segment) or _PYTHON_LAUNCH.match(segment):
+        if (_SCRIPT_LAUNCH.match(segment) or _STATUS_WRAPPER_LAUNCH.match(segment)
+                or _PYTHON_LAUNCH.match(segment)):
             launches.append(segment)
     return launches
 
@@ -315,8 +323,8 @@ def main():
         except OSError:
             return ''
 
-    discussion = read('.codex/research/discussion.md')
-    error = read('.codex/research/error.md')
+    discussion = read('report/discussion.md')
+    issue = read('report/issue.md')
 
     # An override applies only to its own launch segment. Every launch segment must cite
     # a valid ADR for the whole command to bypass the normal gates; missing or incomplete
@@ -335,7 +343,7 @@ def main():
             )
             print(
                 f"GATE: override cited {override_adr}, but no such ADR exists in "
-                ".codex/research/discussion.md. Write the ADR first.",
+                "report/discussion.md. Write the ADR first.",
                 file=sys.stderr,
             )
             return 2
@@ -359,16 +367,16 @@ def main():
         return 0
 
     problems = []
-    for block in entry_blocks(error):
+    for block in entry_blocks(issue):
         if (re.match(r'## \[BUG-\d+\]', block)
                 and re.search(r'(?mi)^\*{0,2}Severity:\*{0,2}\s*critical', block)
                 and last_status(block) == 'open'):
-            problems.append(f'open critical {entry_id(block)} in .codex/research/error.md')
+            problems.append(f'open critical {entry_id(block)} in report/issue.md')
     for block in entry_blocks(discussion):
         if (re.match(r'## \[REV-\d+\]', block)
                 and re.search(r'(?mi)^\*{0,2}Severity:\*{0,2}\s*blocking', block)
                 and last_status(block) == 'open'):
-            problems.append(f'open blocking {entry_id(block)} in .codex/research/discussion.md')
+            problems.append(f'open blocking {entry_id(block)} in report/discussion.md')
     blocks = entry_blocks(discussion)
     dataset_blocks = [block for block in blocks if re.match(r'## \[DATASET-\d+\]', block)]
     critic_blocks = [block for block in blocks if re.match(r'## \[REV-\d+\]', block)]
@@ -397,7 +405,7 @@ def main():
         print(
             'GATE BLOCKED - experiment launch stopped by the mechanical gate '
             '(.codex/hooks/experiment_gate.py):\n  - ' + '\n  - '.join(problems) +
-            '\nResolve the items above, or record a bypass ADR in .codex/research/discussion.md '
+            '\nResolve the items above, or record a bypass ADR in report/discussion.md '
             '(rule skipped, reason, rollback plan) and re-run the command with '
             'GATE_OVERRIDE=ADR-NNN prefixed.',
             file=sys.stderr,

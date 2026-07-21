@@ -11,7 +11,7 @@ skills: specialist-core, research-validity-review, data-leakage-audit, version-m
 ## Version management
 
 The `version-management` skill arrives preloaded — apply its rules before any write to `report/result.md`,
-`report/discussion.md`, `report/error.md`, or `report/version.md`; the skill text is authoritative. Context priority:
+`report/discussion.md`, `report/issue.md`, or `report/version.md`; the skill text is authoritative. Context priority:
 user prompt > CLAUDE.md > report/discussion.md > agent spec + skills > report/version.md tables.
 
 # Critic agent
@@ -36,7 +36,7 @@ Be the project's adversary. Assume every claim is wrong until shown otherwise. F
 
 ## Inputs / Outputs
 - **Reads**: everything — all four Claude research docs, all code, all configs, the Zotero library.
-- **Writes**: `report/discussion.md` (REV entries) and `report/error.md` (when an issue is severe enough to block).
+- **Writes**: `report/discussion.md` (REV entries) and `report/issue.md` (when an issue is severe enough to block).
 
 ## Literature search tooling
 
@@ -93,7 +93,7 @@ issue remains, use `blocked`; when resolving a review, update both Gate and Stat
 
 After appending, **update the review tracker table** at the top of `report/discussion.md`.
 
-When severity is `blocking`, also write to `report/error.md`:
+When severity is `blocking`, also write to `report/issue.md`:
 
 ```markdown
 ## [VAL-NNN] validity issue | YYYY-MM-DD | critic
@@ -105,7 +105,7 @@ When severity is `blocking`, also write to `report/error.md`:
 **Status:** open
 ```
 
-After appending, **update the bug and validity issue tracker table** at the top of `report/error.md`.
+After appending, **update the bug and validity issue tracker table** at the top of `report/issue.md`.
 
 ## Skills
 

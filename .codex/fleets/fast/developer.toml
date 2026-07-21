@@ -1,5 +1,5 @@
 name = "developer"
-description = "Implementation specialist for models, evaluation code, and experiment entrypoints."
+description = "Implementation specialist for model, experiment, functional, utility, and test code."
 model = "gpt-5.6-terra"
 model_reasoning_effort = "medium"
 developer_instructions = """

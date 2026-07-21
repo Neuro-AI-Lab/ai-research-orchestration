@@ -333,12 +333,20 @@ def initialize_project(backend):
         else:
             shutil.copyfile(source_path, destination_path)
             print("created " + destination)
-    for name in ("discussion.md", "result.md", "error.md", "version.md"):
-        relative = ("report/{}".format(name) if backend == "claude"
-                    else ".{}/research/{}".format(backend, name))
+    for name in ("discussion.md", "result.md", "issue.md", "version.md"):
+        relative = "report/{}".format(name)
         destination = os.path.join(ROOT, relative)
         if not os.path.exists(destination):
-            source = os.path.join(ROOT, ".{}".format(backend), "templates", "research", name)
+            source = os.path.join(ROOT, ".{}".format(backend), "templates", "report", name)
+            os.makedirs(os.path.dirname(destination), exist_ok=True)
+            shutil.copyfile(source, destination)
+            print("created " + relative)
+
+    for name in ("PRD.md", "CHECKLIST.md"):
+        relative = "plan/{}".format(name)
+        destination = os.path.join(ROOT, relative)
+        if not os.path.exists(destination):
+            source = os.path.join(ROOT, ".{}".format(backend), "templates", "plan", name)
             os.makedirs(os.path.dirname(destination), exist_ok=True)
             shutil.copyfile(source, destination)
             print("created " + relative)
@@ -358,30 +366,51 @@ def initialize_project(backend):
             shutil.copyfile(source, destination)
             print("created " + relative)
 
-    if backend == "claude":
-        # Research workspace: development-only (plan/report/data) and
-        # develop-and-release (model/experiments/analysis/functionals/utils) dirs.
-        workspace = ("plan", "report", "data", "model", "experiments/runs",
-                     "analysis", "functionals", "utils", ".claude/runs")
-        for name, template in (("plan/PRD.md", "PRD.md"),
-                               ("plan/CHECKLIST.md", "CHECKLIST.md")):
-            destination = os.path.join(ROOT, name)
-            source = os.path.join(ROOT, ".claude", "templates", "plan", template)
-            if not os.path.exists(destination) and os.path.isfile(source):
-                os.makedirs(os.path.dirname(destination), exist_ok=True)
-                shutil.copyfile(source, destination)
-                print("created " + name)
-    else:
-        workspace = ("data", "models", "evaluation", "papers/notes/{}".format(backend),
-                     "experiments/{}".format(backend), "analysis/{}".format(backend),
-                     ".{}/runs".format(backend))
+    # One selected backend owns the checkout. Both providers use the same researcher-facing
+    # project layout, while their rules, prompts, memory, handoff, hooks, and audit data stay
+    # inside the selected provider's control directory.
+    workspace = (
+        "plan", "report", "data", "model", "experiments/runs", "analysis",
+        "functionals", "utils", ".{}/runs".format(backend),
+    )
     for name in workspace:
         os.makedirs(os.path.join(ROOT, name), exist_ok=True)
+    print_adaptation_checklist()
     print(
         "{} initialization complete. Run './orchestrate doctor {}', then "
         "'./orchestrate {}'.".format(backend.capitalize(), backend, backend)
     )
     return 0
+
+
+def print_adaptation_checklist():
+    """Recommend new-project adaptations from the shared machine-readable path map.
+
+    Advisory only: nothing is deleted or rewritten here — the user applies the
+    recommendations (or asks the orchestrator to, which still confirms first)."""
+    project_map = read_json(os.path.join(ROOT, ".orchestration", "project_map.json"), {})
+    categories = project_map.get("categories", {})
+    deletable = [
+        path for path in categories.get("template-dev-only", {}).get("paths", [])
+        if os.path.exists(os.path.join(ROOT, path))
+    ]
+    rewrites = []
+    for name, spec in categories.get("adapt-and-rewrite", {}).get("files", {}).items():
+        target = os.path.join(ROOT, name)
+        try:
+            with open(target, encoding="utf-8") as handle:
+                if spec.get("marker") and spec["marker"] in handle.read():
+                    rewrites.append((name, spec.get("advice", "rewrite for this project")))
+        except OSError:
+            continue
+    if not deletable and not rewrites:
+        return
+    print("New-project adaptation (see README.md, Project layout):")
+    if deletable:
+        print("  template-only paths you can delete: " + ", ".join(deletable))
+    for name, advice in rewrites:
+        print("  rewrite {}: {}".format(name, advice))
+    print("  Ask the orchestrator to apply these once confirmed; git actions still need your explicit request.")
 
 
 def doctor(backend):
@@ -399,23 +428,29 @@ def doctor(backend):
             ".codex/config.toml", ".codex/hooks/audit_event.py",
             ".codex/scripts/orchestration_audit.py", ".codex/settings.local.json",
             ".codex/state/handoff.json", ".codex/memory/conductor/MEMORY.md",
+            ".codex/templates/plan/PRD.md", ".codex/templates/plan/CHECKLIST.md",
+            ".codex/templates/report/discussion.md", ".codex/templates/report/issue.md",
+            ".codex/templates/report/result.md", ".codex/templates/report/version.md",
         ),
         "claude": (
             "CLAUDE.md", ".mcp.json", ".claude/settings.json",
             ".claude/templates/plan/PRD.md", ".claude/templates/plan/CHECKLIST.md",
+            ".claude/templates/report/discussion.md", ".claude/templates/report/issue.md",
+            ".claude/templates/report/result.md", ".claude/templates/report/version.md",
             ".claude/settings.local.json", ".claude/state/handoff.json",
             ".claude/agent-memory/orchestrator/MEMORY.md",
         ),
     }
     required = provider_required[backend] + tuple(
-        ("report/{}".format(name) if backend == "claude"
-         else ".{}/research/{}".format(backend, name))
-        for name in ("discussion.md", "result.md", "error.md", "version.md")
+        "report/{}".format(name)
+        for name in ("discussion.md", "result.md", "issue.md", "version.md")
     )
-    if backend == "claude":
-        required += ("plan/PRD.md", "plan/CHECKLIST.md")
+    required += (
+        "plan/PRD.md", "plan/CHECKLIST.md", "data", "model", "experiments",
+        "analysis", "functionals", "utils",
+    )
     for path in required:
-        if os.path.isfile(os.path.join(ROOT, path)):
+        if os.path.exists(os.path.join(ROOT, path)):
             report("PASS", path, "present")
         else:
             report("FAIL", path, "missing")
@@ -771,19 +806,33 @@ def save_config(config):
 
 
 def enforce_backend_lock(saved, selected):
-    """Warn (not refuse) when launching the non-default backend from this checkout.
+    """Fail closed when a checkout is already bound to another provider.
 
-    Provider research state is isolated, so a cross-backend launch is a supported explicit
-    choice; the warning remains because data, evaluation, and entry-point paths are shared.
-    Bare `./orchestrate` still launches the saved default; change the default with
-    `./orchestrate --configure`."""
+    Applied to `init` only: creating a second provider's state in one checkout is the
+    real mixing risk. Launch/doctor/configure use warn_backend_mismatch instead — an
+    explicit cross-backend choice proceeds with a caution (configure is the rebind path)."""
+    locked = saved.get("backend")
+    if locked and locked != selected:
+        raise LaunchError(
+            "this checkout is bound to '{}'; refusing '{}'. Use a separate clone/worktree "
+            "and run './orchestrate init {}' there.".format(locked, selected, selected)
+        )
+
+
+def warn_backend_mismatch(saved, selected):
+    """Cross-backend launch/diagnose/configure is an explicit choice: warn, never block.
+
+    The bound provider owns the root research workspace (report/, model/, experiments/,
+    ...), so the caution is about shared working files — state creation stays refused
+    in enforce_backend_lock (init)."""
     locked = saved.get("backend")
     if locked and locked != selected:
         print(
-            "orchestrate: note — this checkout's default backend is '{}'; launching '{}'.\n"
-            "  Research state stays per-provider, but data, evaluation, and entry points\n"
-            "  are shared: avoid concurrent provider runs on the same files.\n"
-            "  Change the default with './orchestrate --configure'.".format(locked, selected),
+            "orchestrate: note — this checkout is bound to '{}'; using '{}'.\n"
+            "  The bound provider owns the root research workspace; avoid running both\n"
+            "  providers against the same working files. './orchestrate init {}' stays\n"
+            "  refused here — use a separate clone/worktree for a second provider's state.".format(
+                locked, selected, selected),
             file=sys.stderr,
         )
 
@@ -840,7 +889,7 @@ def main(argv=None):
             backend = choose("Select backend to diagnose:", ["codex", "claude"], "codex")
         if backend not in ("codex", "claude"):
             raise LaunchError("doctor backend must be codex or claude")
-        enforce_backend_lock(saved, backend)
+        warn_backend_mismatch(saved, backend)
         return doctor(backend)
     if args.command == "release-check":
         return release_check()
@@ -863,7 +912,7 @@ def main(argv=None):
     if args.configure:
         selected_backend = choose(
             "Select orchestration backend:", ["codex", "claude"], saved.get("backend", "codex"))
-        enforce_backend_lock(saved, selected_backend)
+        warn_backend_mismatch(saved, selected_backend)
         saved = {
             "backend": selected_backend,
             "permissions": choose("Select permission posture:", ["safe", "bypass"], saved.get("permissions", "safe")),
@@ -877,7 +926,7 @@ def main(argv=None):
     backend = args.command or saved.get("backend")
     if not backend:
         backend = choose("Select orchestration backend:", ["codex", "claude"], "codex")
-    enforce_backend_lock(saved, backend)
+    warn_backend_mismatch(saved, backend)
     preset = args.preset or saved.get("preset", "quality")
     permissions = args.permissions or saved.get("permissions", "safe")
     overrides = dict(saved.get("role_overrides", {}))

@@ -21,6 +21,7 @@ REAL_LAUNCHES = (
     "bash run.sh train",
     "true && ./evaluate.sh test",
     "python3 {src}/train.py",
+    ".{provider}/scripts/run_with_status.sh EXP-001 -- python3 model/train.py",
     "x=$(./run.sh train)",
     "bash <<EOF\n./run.sh train\nEOF",
 )
@@ -36,7 +37,7 @@ def test_read_only_mentions_are_allowed(backend, command):
 @pytest.mark.parametrize("backend", ("codex", "claude"))
 @pytest.mark.parametrize("command", REAL_LAUNCHES)
 def test_real_launches_require_research_attestations(backend, command):
-    command = command.format(src="model" if backend == "claude" else "models")
+    command = command.format(src="model", provider=backend)
     proc = run_hook(command, backend=backend)
     assert proc.returncode == 2, (backend, command, proc.stderr)
     assert "GATE" in proc.stderr

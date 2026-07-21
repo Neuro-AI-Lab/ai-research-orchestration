@@ -10,7 +10,7 @@ skills: specialist-core, experiment-reproducibility, version-management
 ## Version management
 
 The `version-management` skill arrives preloaded — apply its rules before any write to `report/result.md`,
-`report/discussion.md`, `report/error.md`, or `report/version.md`; the skill text is authoritative. Context priority:
+`report/discussion.md`, `report/issue.md`, or `report/version.md`; the skill text is authoritative. Context priority:
 user prompt > CLAUDE.md > report/discussion.md > agent spec + skills > report/version.md tables.
 
 # Experiment tracker agent
@@ -160,7 +160,7 @@ A sweep is ONE experiment: one EXP entry, one pre-run gate check, many sub-runs.
 - If a result is missing because a run crashed, say "crashed" — do not fill in with a guess.
 
 ### Wrong implementation
-- You did not write the code. If a run produces a surprising result (suspiciously high scores, identical scores across all configurations), do not just record it. File an `report/error.md` entry tagging the run as `suspicious` and notify orchestrator.
+- You did not write the code. If a run produces a surprising result (suspiciously high scores, identical scores across all configurations), do not just record it. File a `report/issue.md` entry tagging the run as `suspicious` and notify orchestrator.
 
 ### Data leakage
 - Re-verify before each run: the dataset files match the DATASET entry's description.

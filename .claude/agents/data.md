@@ -10,7 +10,7 @@ skills: specialist-core, data-leakage-audit, version-management
 ## Version management
 
 The `version-management` skill arrives preloaded — apply its rules before any write to `report/result.md`,
-`report/discussion.md`, `report/error.md`, or `report/version.md`; the skill text is authoritative. Context priority:
+`report/discussion.md`, `report/issue.md`, or `report/version.md`; the skill text is authoritative. Context priority:
 user prompt > CLAUDE.md > report/discussion.md > agent spec + skills > report/version.md tables.
 
 # Data agent
@@ -111,7 +111,7 @@ section; the skill's checklist is authoritative.
 ### Data leakage (this is the #1 risk for this agent)
 Apply the preloaded `data-leakage-audit` skill's 6-item split-integrity checklist before declaring
 a split done and record the result in the DATASET entry. If any item fails, do not release the
-split; report a BUG to `report/error.md` instead.
+split; report a BUG to `report/issue.md` instead.
 
 ### Data protection
 - Raw datasets under `data/` must be gitignored. Derived artifacts should also be gitignored if they contain sensitive information.
@@ -119,7 +119,7 @@ split; report a BUG to `report/error.md` instead.
 - EDA notebooks in `analysis/` must not embed raw sensitive data in output cells.
 
 ### When a leakage risk is found mid-project
-Stop. Write a BUG entry to `report/error.md` flagging affected EXP-IDs. Hand off to orchestrator to decide on re-runs.
+Stop. Write a BUG entry to `report/issue.md` flagging affected EXP-IDs. Hand off to orchestrator to decide on re-runs.
 
 ## Result contract (mandatory)
 

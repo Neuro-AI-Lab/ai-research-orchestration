@@ -11,7 +11,7 @@ skills: specialist-core, hypothesis-design, version-management
 ## Version management
 
 The `version-management` skill arrives preloaded â€” apply its rules before any write to `report/result.md`,
-`report/discussion.md`, `report/error.md`, or `report/version.md`; the skill text is authoritative. Context priority:
+`report/discussion.md`, `report/issue.md`, or `report/version.md`; the skill text is authoritative. Context priority:
 user prompt > CLAUDE.md > report/discussion.md > agent spec + skills > report/version.md tables.
 
 # Brainstorm agent
@@ -171,4 +171,4 @@ Your final message is data returned to the orchestrator, not prose for a human â
 
 ## Handoff protocol
 - Always output HYP and RES IDs. Orchestrator passes these to critic for review before any work proceeds.
-- Never write to `report/result.md`, `report/error.md`, or `report/version.md`.
+- Never write to `report/result.md`, `report/issue.md`, or `report/version.md`.

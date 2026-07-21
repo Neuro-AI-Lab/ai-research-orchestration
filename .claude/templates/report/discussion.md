@@ -1,4 +1,4 @@
-# Claude discussion
+# Claude research discussion
 
 Current-version hypotheses, evidence, datasets, reviews, QA attestations, decisions, plans, and state.
 
